@@ -8,11 +8,12 @@ define('DB_USERNAME', 'root');
 define('DB_PASSWORD', '');
 define('DB_NAME', 'task_manager');
 
-// define('SITEURL', 'http://127.0.0.1/Task-Manager-SoftkIT/');
+// define('SITEURL', 'http://localhost/Task-Manager-SoftkIT/');
 
+define("SITEURL", "https://tm.softkit.xyz/");
 
-if ($_SERVER['HTTP_HOST'] == '127.0.0.1') {
-    define("SITEURL", "http://127.0.0.1/Task-Manager-SoftkIT/");
-} else {
-    define("SITEURL", "https://tm.softkit.xyz/");
-}
+// if ($_SERVER['HTTP_HOST'] == 'localhost') {
+//     define("SITEURL", "http://localhost/Task-Manager-SoftkIT/");
+// } else {
+//     define("SITEURL", "https://tm.softkit.xyz/");
+// }
