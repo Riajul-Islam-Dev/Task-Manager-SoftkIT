@@ -10,10 +10,9 @@ define('DB_NAME', 'task_manager');
 
 // define('SITEURL', 'http://localhost/Task-Manager-SoftkIT/');
 
-define("SITEURL", "https://tm.softkit.xyz/");
 
-// if ($_SERVER['HTTP_HOST'] == 'localhost') {
-//     define("SITEURL", "http://localhost/Task-Manager-SoftkIT/");
-// } else {
-//     define("SITEURL", "https://tm.softkit.xyz/");
-// }
+if ($_SERVER['HTTP_HOST'] == 'localhost') {
+    define("SITEURL", "http://localhost/Task-Manager-SoftkIT/");
+} else {
+    define("SITEURL", "https://tm.softkit.xyz/");
+}
