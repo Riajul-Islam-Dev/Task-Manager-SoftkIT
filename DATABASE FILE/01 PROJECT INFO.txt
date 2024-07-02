@@ -1,0 +1,6 @@
+**Database Name: task_manager**
+
+
+**Recommended PHP Version 5.6.3, 7.4.12**
+
+Do not change the project’s folder name without updating the 'SITEURL'
