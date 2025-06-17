@@ -18,5 +18,8 @@ define('DB_NAME', 'task_manager');
 if ($_SERVER['HTTP_HOST'] == 'localhost') {
     define("SITEURL", "http://localhost/Task-Manager-SoftkIT/");
 } else {
-    define("SITEURL", "https://tm.softkit.io/");
+    // Local
+    define("SITEURL", "http://127.0.0.1/tm.softkit.io/");
+    // Live
+    // define("SITEURL", "https://tm.softkit.io/");
 }

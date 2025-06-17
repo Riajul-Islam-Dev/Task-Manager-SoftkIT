@@ -1,182 +1,235 @@
 <?php
-include('config/constants.php');
+require_once('config/constants.php');
 ?>
-
-<html>
+<!DOCTYPE html>
+<html lang="en">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Task Manager - SoftkIT</title>
 
     <link href="assets/img/favicon.png" rel="icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
 
-    <link rel="stylesheet" href="<?php echo SITEURL; ?>css/style.css" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6" crossorigin="anonymous">
+        .navbar-brand {
+            font-weight: bold;
+            color: #dc3545 !important;
+        }
+
+        .card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border: none;
+        }
+
+        .priority-high {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .priority-medium {
+            color: #fd7e14;
+            font-weight: bold;
+        }
+
+        .priority-low {
+            color: #198754;
+            font-weight: bold;
+        }
+    </style>
 </head>
 
 <body>
-
-    <div class="wrapper">
-
-        <h1 class="text-center">Task Manager Application - SoftkIT</h1>
-
-
-        <!-- Menu Starts Here -->
-        <nav>
-            <div class="nav nav-tabs" id="nav-tab" role="tablist">
-
-                <a href="<?php echo SITEURL; ?>" style="text-decoration: none;"><button class="nav-link active" id="nav-home-tab" data-bs-toggle="tab" data-bs-target="#nav-home" type="button" role="tab" aria-controls="nav-home" aria-selected="true"><b>Home</b></button></a>
-
-                <?php
-
-                //Comment Displaying Lists From Database in ourMenu
-                $conn2 = mysqli_connect(LOCALHOST, DB_USERNAME, DB_PASSWORD) or die(mysqli_error());
-
-                //SELECT DATABASE
-                $db_select2 = mysqli_select_db($conn2, DB_NAME) or die(mysqli_error());
-
-                //Query to Get the Lists from database
-                $sql2 = "SELECT * FROM tbl_lists";
-
-                //Execute Query
-                $res2 = mysqli_query($conn2, $sql2);
-
-                //CHeck whether the query executed or not
-                if ($res2 == true) {
-                    //Display the lists in menu
-                    while ($row2 = mysqli_fetch_assoc($res2)) {
-                        $list_id = $row2['list_id'];
-                        $list_name = $row2['list_name'];
-                ?>
-
-                        <a href="<?php echo SITEURL; ?>list-task.php?list_id=<?php echo $list_id; ?>" style="text-decoration: none;"><button class="nav-link active" id="nav-home-tab" data-bs-toggle="tab" data-bs-target="#nav-home" type="button" role="tab" aria-controls="nav-home" aria-selected="true"><b><?php echo $list_name; ?></b></button></a>
-
-                <?php
-
-                    }
-                }
-
-                ?>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="<?php echo SITEURL; ?>">
+                <i class="fas fa-tasks me-2"></i>Task Manager - SoftkIT
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="<?php echo SITEURL; ?>">Home</a>
+                    </li>
 
 
-
-                <a href="<?php echo SITEURL; ?>manage-list.php" style="text-decoration: none;"><button class="nav-link active" id="nav-home-tab" data-bs-toggle="tab" data-bs-target="#nav-home" type="button" role="tab" aria-controls="nav-home" aria-selected="true"><b>Manage Lists</b></button></a>
-            </div>
-        </nav>
-        <!-- Menu Ends Here -->
-
-        <!-- Tasks Starts Here -->
-
-        <p>
-            <?php
-
-            if (isset($_SESSION['add'])) {
-                echo $_SESSION['add'];
-                unset($_SESSION['add']);
-            }
-
-            if (isset($_SESSION['delete'])) {
-                echo $_SESSION['delete'];
-                unset($_SESSION['delete']);
-            }
-
-            if (isset($_SESSION['update'])) {
-                echo $_SESSION['update'];
-                unset($_SESSION['update']);
-            }
-
-
-            if (isset($_SESSION['delete_fail'])) {
-                echo $_SESSION['delete_fail'];
-                unset($_SESSION['delete_fail']);
-            }
-
-            ?>
-        </p>
-
-        <div class="all-tasks">
-
-            <a href="<?php echo SITEURL; ?>add-task.php"><button class="btn btn-dark">Add Task</button></a>
-
-            <table class="tbl-full table table-condensed table-hover">
-
-                <tr>
-                    <th>S.N.</th>
-                    <th>Task Name</th>
-                    <th>Priority</th>
-                    <th>Deadline</th>
-                    <th>Actions</th>
-                </tr>
-
-                <?php
-
-                //Connect Database
-                $conn = mysqli_connect(LOCALHOST, DB_USERNAME, DB_PASSWORD) or die(mysqli_error());
-
-                //Select Database
-                $db_select = mysqli_select_db($conn, DB_NAME) or die(mysqli_error());
-
-                //Create SQL Query to Get DAta from Databse
-                $sql = "SELECT * FROM tbl_tasks";
-
-                //Execute Query
-                $res = mysqli_query($conn, $sql);
-
-                //CHeck whether the query execueted o rnot
-                if ($res == true) {
-                    //DIsplay the Tasks from DAtabase
-                    //Dount the Tasks on Database first
-                    $count_rows = mysqli_num_rows($res);
-
-                    //Create Serial Number Variable
-                    $sn = 1;
-
-                    //Check whether there is task on database or not
-                    if ($count_rows > 0) {
-                        //Data is in Database
-                        while ($row = mysqli_fetch_assoc($res)) {
-                            $task_id = $row['task_id'];
-                            $task_name = $row['task_name'];
-                            $priority = $row['priority'];
-                            $deadline = $row['deadline'];
-                ?>
-
-                            <tr>
-                                <td><?php echo $sn++; ?>. </td>
-                                <td><?php echo $task_name; ?></td>
-                                <td><?php echo $priority; ?></td>
-                                <td><?php echo $deadline; ?></td>
-                                <td>
-                                    <a href="<?php echo SITEURL; ?>update-task.php?task_id=<?php echo $task_id; ?>"><button class="btn btn-success btn-sm">Update</button></a>
-
-                                    <a href="<?php echo SITEURL; ?>delete-task.php?task_id=<?php echo $task_id; ?>"><button class="btn btn-danger btn-sm">Remove</button></a>
-
-                                </td>
-                            </tr>
-
-                        <?php
+                    <?php
+                    // Display Lists From Database in Menu
+                    try {
+                        $conn2 = new mysqli(LOCALHOST, DB_USERNAME, DB_PASSWORD, DB_NAME);
+                        if ($conn2->connect_error) {
+                            throw new Exception("Connection failed: " . $conn2->connect_error);
                         }
-                    } else {
-                        //No data in Database
-                        ?>
 
-                        <tr>
-                            <td colspan="5">No Task Added Yet.</td>
-                        </tr>
+                        $sql2 = "SELECT * FROM tbl_lists ORDER BY list_name";
+                        $res2 = $conn2->query($sql2);
 
-                <?php
+                        if ($res2 && $res2->num_rows > 0) {
+                            while ($row2 = $res2->fetch_assoc()) {
+                                $list_id = htmlspecialchars($row2['list_id']);
+                                $list_name = htmlspecialchars($row2['list_name']);
+                                echo '<li class="nav-item">';
+                                echo '<a class="nav-link" href="' . SITEURL . 'list-task.php?list_id=' . $list_id . '">' . $list_name . '</a>';
+                                echo '</li>';
+                            }
+                        }
+                        $conn2->close();
+                    } catch (Exception $e) {
+                        error_log($e->getMessage());
                     }
-                }
-
-                ?>
-
-
-
-            </table>
-
+                    ?>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?php echo SITEURL; ?>manage-list.php">
+                            <i class="fas fa-cog me-1"></i>Manage Lists
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </div>
+    </nav>
 
-        <!-- Tasks Ends Here -->
+    <div class="container">
+        <?php
+        // Display session messages with Bootstrap alerts
+        $messages = [
+            'add' => ['class' => 'alert-success', 'icon' => 'fas fa-check-circle'],
+            'delete' => ['class' => 'alert-success', 'icon' => 'fas fa-check-circle'],
+            'update' => ['class' => 'alert-success', 'icon' => 'fas fa-check-circle'],
+            'delete_fail' => ['class' => 'alert-danger', 'icon' => 'fas fa-exclamation-circle']
+        ];
+
+        foreach ($messages as $key => $config) {
+            if (isset($_SESSION[$key])) {
+                echo '<div class="alert ' . $config['class'] . ' alert-dismissible fade show" role="alert">';
+                echo '<i class="' . $config['icon'] . ' me-2"></i>' . htmlspecialchars($_SESSION[$key]);
+                echo '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+                echo '</div>';
+                unset($_SESSION[$key]);
+            }
+        }
+        ?>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-list me-2"></i>All Tasks
+                        </h5>
+                        <a href="<?php echo SITEURL; ?>add-task.php" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i>Add Task
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th scope="col">#</th>
+                                        <th scope="col">Task Name</th>
+                                        <th scope="col">Priority</th>
+                                        <th scope="col">Deadline</th>
+                                        <th scope="col">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php
+                                    try {
+                                        $conn = new mysqli(LOCALHOST, DB_USERNAME, DB_PASSWORD, DB_NAME);
+                                        if ($conn->connect_error) {
+                                            throw new Exception("Connection failed: " . $conn->connect_error);
+                                        }
+
+                                        $sql = "SELECT * FROM tbl_tasks ORDER BY 
+                                           CASE priority 
+                                               WHEN 'High' THEN 1 
+                                               WHEN 'Medium' THEN 2 
+                                               WHEN 'Low' THEN 3 
+                                           END, deadline ASC";
+
+                                        $res = $conn->query($sql);
+
+                                        if ($res && $res->num_rows > 0) {
+                                            $sn = 1;
+                                            while ($row = $res->fetch_assoc()) {
+                                                $task_id = htmlspecialchars($row['task_id']);
+                                                $task_name = htmlspecialchars($row['task_name']);
+                                                $priority = htmlspecialchars($row['priority']);
+                                                $deadline = htmlspecialchars($row['deadline']);
+
+                                                $priority_class = 'priority-' . strtolower($priority);
+                                                $deadline_formatted = date('M d, Y', strtotime($deadline));
+                                    ?>
+
+                                                <tr>
+                                                    <td><?php echo $sn++; ?></td>
+                                                    <td>
+                                                        <strong><?php echo $task_name; ?></strong>
+                                                        <?php if (!empty($row['task_description'])): ?>
+                                                            <br><small class="text-muted"><?php echo htmlspecialchars($row['task_description']); ?></small>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-<?php echo $priority === 'High' ? 'danger' : ($priority === 'Medium' ? 'warning' : 'success'); ?>">
+                                                            <?php echo $priority; ?>
+                                                        </span>
+                                                    </td>
+                                                    <td><?php echo $deadline_formatted; ?></td>
+                                                    <td>
+                                                        <div class="btn-group" role="group">
+                                                            <a href="<?php echo SITEURL; ?>update-task.php?task_id=<?php echo $task_id; ?>"
+                                                                class="btn btn-outline-primary btn-sm" title="Edit Task">
+                                                                <i class="fas fa-edit"></i>
+                                                            </a>
+                                                            <a href="<?php echo SITEURL; ?>delete-task.php?task_id=<?php echo $task_id; ?>"
+                                                                class="btn btn-outline-danger btn-sm" title="Delete Task"
+                                                                onclick="return confirm('Are you sure you want to delete this task?')">
+                                                                <i class="fas fa-trash"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            <?php
+                                            }
+                                        } else {
+                                            ?>
+                                            <tr>
+                                                <td colspan="5" class="text-center py-4">
+                                                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                                    <p class="text-muted">No tasks added yet. <a href="<?php echo SITEURL; ?>add-task.php">Add your first task</a>!</p>
+                                                </td>
+                                            </tr>
+                                    <?php
+                                        }
+                                        $conn->close();
+                                    } catch (Exception $e) {
+                                        error_log($e->getMessage());
+                                        echo '<tr><td colspan="5" class="text-center text-danger">Error loading tasks. Please try again.</td></tr>';
+                                    }
+                                    ?>
+
+
+
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>

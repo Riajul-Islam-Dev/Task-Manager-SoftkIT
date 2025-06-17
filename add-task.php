@@ -1,176 +1,239 @@
 <?php
-include('config/constants.php');
-?>
+require_once('config/constants.php');
 
-<html>
-
-<head>
-    <title>Task Manager - SoftkIT</title>
-
-    <link href="assets/img/favicon.png" rel="icon">
-
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6" crossorigin="anonymous">
-    <link rel="stylesheet" href="<?php echo SITEURL; ?>css/style.css" />
-</head>
-
-<body>
-
-    <div class="wrapper">
-
-        <div class="container">
-
-            <div class="row">
-
-                <div class="col-lg-2"></div>
-
-                <div class="col-lg-8">
-
-                    <h1 class="text-center">Task Manager Application - SoftkIT</h1>
-
-                    <a class="btn-secondary" href="<?php echo SITEURL; ?>">Home</a>
-
-                    <h3>Add Task Page</h3>
-
-                    <p>
-                        <?php
-
-                        if (isset($_SESSION['add_fail'])) {
-                            echo $_SESSION['add_fail'];
-                            unset($_SESSION['add_fail']);
-                        }
-
-                        ?>
-                    </p>
-
-                    <form method="POST" action="">
-                        <div class="mb-3">
-                            <label for="exampleInputEmail1" class="form-label">Task Name</label>
-                            <input type="text" name="task_name" class="form-control" placeholder="Type your Task Name" required="required" /></td>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="exampleInputPassword1" class="form-label">Task Description</label>
-                            <textarea name="task_description" class="form-control" placeholder="Type Task Description"></textarea>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="disabledSelect" class="form-label">Select List</label>
-                            <select name="list_id" class="form-select" id="">
-                                <?php
-
-                                //Connect Database
-                                $conn = mysqli_connect(LOCALHOST, DB_USERNAME, DB_PASSWORD) or die(mysqli_error());
-
-                                //SElect Database
-                                $db_select = mysqli_select_db($conn, DB_NAME) or die(mysqli_error());
-
-                                //SQL query to get the list from table
-                                $sql = "SELECT * FROM tbl_lists";
-
-                                //Execute Query
-                                $res = mysqli_query($conn, $sql);
-
-                                //Check whether the query executed or not
-                                if ($res == true) {
-                                    //Create variable to Count Rows
-                                    $count_rows = mysqli_num_rows($res);
-
-                                    //If there is data in database then display all in dropdows else display None as option
-                                    if ($count_rows > 0) {
-                                        //display all lists on dropdown from database
-                                        while ($row = mysqli_fetch_assoc($res)) {
-                                            $list_id = $row['list_id'];
-                                            $list_name = $row['list_name'];
-                                ?>
-                                            <option value="<?php echo $list_id ?>"><?php echo $list_name; ?></option>
-                                        <?php
-                                        }
-                                    } else {
-                                        //Display None as option
-                                        ?>
-                                        <option value="0">None</option>p
-                                <?php
-                                    }
-                                }
-                                ?>
-                            </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="exampleInputPassword1" class="form-label">Priority:</label>
-                            <select name="priority" class="form-select" id="">
-                                <option value="High">High</option>
-                                <option value="Medium">Medium</option>
-                                <option value="Low">Low</option>
-                            </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="exampleInputPassword1" class="form-label">Deadline</label>
-                            <input type="date" class="form-control" name="deadline" />
-                        </div>
-
-                        <button type="submit" class="btn btn-secondary" name="submit">Add</button>
-                    </form>
-
-                </div>
-
-                <div class="col-lg-2"></div>
-
-
-            </div>
-
-        </div>
-
-    </div>
-</body>
-
-</html>
-
-
-<?php
-
-//Check whether the SAVE button is clicked or not
+// Process form submission BEFORE any HTML output
 if (isset($_POST['submit'])) {
-    //echo "Button Clicked";
-    //Get all the Values from Form
-    $task_name = $_POST['task_name'];
-    $task_description = $_POST['task_description'];
-    $list_id = $_POST['list_id'];
+    // Validate and sanitize input
+    $task_name = trim($_POST['task_name']);
+    $task_description = trim($_POST['task_description']);
+    $list_id = (int)$_POST['list_id'];
     $priority = $_POST['priority'];
     $deadline = $_POST['deadline'];
 
-    //Connect Database
-    $conn2 = mysqli_connect(LOCALHOST, DB_USERNAME, DB_PASSWORD) or die(mysqli_error());
+    // Basic validation
+    if (empty($task_name) || empty($priority) || empty($deadline)) {
+        $_SESSION['add_fail'] = "Please fill in all required fields.";
+        header('Location: ' . SITEURL . 'add-task.php');
+        exit();
+    }
 
-    //SElect Database
-    $db_select2 = mysqli_select_db($conn2, DB_NAME) or die(mysqli_error());
+    // Validate priority
+    if (!in_array($priority, ['High', 'Medium', 'Low'])) {
+        $_SESSION['add_fail'] = "Invalid priority selected.";
+        header('Location: ' . SITEURL . 'add-task.php');
+        exit();
+    }
 
-    //CReate SQL Query to INSERT DATA into DAtabase
-    $sql2 = "INSERT INTO tbl_tasks SET 
-            task_name = '$task_name',
-            task_description = '$task_description',
-            list_id = $list_id,
-            priority = '$priority',
-            deadline = '$deadline'
-        ";
+    // Validate deadline (must be today or future)
+    if (strtotime($deadline) < strtotime(date('Y-m-d'))) {
+        $_SESSION['add_fail'] = "Deadline cannot be in the past.";
+        header('Location: ' . SITEURL . 'add-task.php');
+        exit();
+    }
 
-    //Execute Query
-    $res2 = mysqli_query($conn2, $sql2);
+    try {
+        $conn = new mysqli(LOCALHOST, DB_USERNAME, DB_PASSWORD, DB_NAME);
+        if ($conn->connect_error) {
+            throw new Exception("Connection failed: " . $conn->connect_error);
+        }
 
-    //Check whetehre the query executed successfully or not
-    if ($res2 == true) {
-        //Query Executed and Task Inserted Successfully
-        $_SESSION['add'] = "Task Added Successfully.";
+        // Use prepared statement to prevent SQL injection
+        $stmt = $conn->prepare("INSERT INTO tbl_tasks (task_name, task_description, list_id, priority, deadline) VALUES (?, ?, ?, ?, ?)");
+        $stmt->bind_param("ssiss", $task_name, $task_description, $list_id, $priority, $deadline);
 
-        //Redirect to Homepage
-        header('location:' . SITEURL);
-    } else {
-        //FAiled to Add TAsk
-        $_SESSION['add_fail'] = "Failed to Add Task";
-        //Redirect to Add TAsk Page
-        header('location:' . SITEURL . 'add-task.php');
+        if ($stmt->execute()) {
+            $_SESSION['add'] = "✅ Task '" . htmlspecialchars($task_name) . "' added successfully!";
+            header('Location: ' . SITEURL);
+            exit();
+        } else {
+            throw new Exception("Failed to add task: " . $stmt->error);
+        }
+
+        $stmt->close();
+        $conn->close();
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+        $_SESSION['add_fail'] = "An error occurred while adding the task. Please try again.";
+        header('Location: ' . SITEURL . 'add-task.php');
+        exit();
     }
 }
-
 ?>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Task - Task Manager - SoftkIT</title>
+
+    <link href="assets/img/favicon.png" rel="icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            color: #dc3545 !important;
+        }
+
+        .card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border: none;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="<?php echo SITEURL; ?>">
+                <i class="fas fa-tasks me-2"></i>Task Manager - SoftkIT
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="<?php echo SITEURL; ?>">
+                    <i class="fas fa-home me-1"></i>Home
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title mb-0">
+                            <i class="fas fa-plus-circle me-2"></i>Add New Task
+                        </h4>
+                    </div>
+                    <div class="card-body">
+
+                        <?php
+                        if (isset($_SESSION['add_fail'])) {
+                            echo '<div class="alert alert-danger alert-dismissible fade show" role="alert">';
+                            echo '<i class="fas fa-exclamation-circle me-2"></i>' . htmlspecialchars($_SESSION['add_fail']);
+                            echo '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+                            echo '</div>';
+                            unset($_SESSION['add_fail']);
+                        }
+                        ?>
+
+                        <form method="POST" action="" class="needs-validation" novalidate>
+                            <div class="mb-3">
+                                <label for="task_name" class="form-label">
+                                    <i class="fas fa-tasks me-1"></i>Task Name *
+                                </label>
+                                <input type="text" name="task_name" id="task_name" class="form-control"
+                                    placeholder="Enter task name" required>
+                                <div class="invalid-feedback">
+                                    Please provide a task name.
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="task_description" class="form-label">
+                                    <i class="fas fa-align-left me-1"></i>Task Description
+                                </label>
+                                <textarea name="task_description" id="task_description" class="form-control" rows="3"
+                                    placeholder="Enter task description (optional)"></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="list_id" class="form-label">
+                                    <i class="fas fa-list me-1"></i>Select List
+                                </label>
+                                <select name="list_id" id="list_id" class="form-select">
+                                    <option value="0">No specific list</option>
+                                    <?php
+                                    try {
+                                        $conn = new mysqli(LOCALHOST, DB_USERNAME, DB_PASSWORD, DB_NAME);
+                                        if ($conn->connect_error) {
+                                            throw new Exception("Connection failed: " . $conn->connect_error);
+                                        }
+
+                                        $sql = "SELECT * FROM tbl_lists ORDER BY list_name";
+                                        $res = $conn->query($sql);
+
+                                        if ($res && $res->num_rows > 0) {
+                                            while ($row = $res->fetch_assoc()) {
+                                                $list_id = htmlspecialchars($row['list_id']);
+                                                $list_name = htmlspecialchars($row['list_name']);
+                                                echo '<option value="' . $list_id . '">' . $list_name . '</option>';
+                                            }
+                                        }
+                                        $conn->close();
+                                    } catch (Exception $e) {
+                                        error_log($e->getMessage());
+                                        echo '<option value="0">Error loading lists</option>';
+                                    }
+                                    ?>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="priority" class="form-label">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>Priority *
+                                </label>
+                                <select name="priority" id="priority" class="form-select" required>
+                                    <option value="">Select priority</option>
+                                    <option value="High">🔴 High Priority</option>
+                                    <option value="Medium" selected>🟡 Medium Priority</option>
+                                    <option value="Low">🟢 Low Priority</option>
+                                </select>
+                                <div class="invalid-feedback">
+                                    Please select a priority level.
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="deadline" class="form-label">
+                                    <i class="fas fa-calendar-alt me-1"></i>Deadline *
+                                </label>
+                                <input type="date" name="deadline" id="deadline" class="form-control"
+                                    min="<?php echo date('Y-m-d'); ?>" required>
+                                <div class="invalid-feedback">
+                                    Please select a deadline.
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <a href="<?php echo SITEURL; ?>" class="btn btn-outline-secondary me-md-2">
+                                    <i class="fas fa-times me-1"></i>Cancel
+                                </a>
+                                <button type="submit" name="submit" class="btn btn-primary">
+                                    <i class="fas fa-plus me-1"></i>Add Task
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Bootstrap form validation
+        (function() {
+            'use strict';
+            window.addEventListener('load', function() {
+                var forms = document.getElementsByClassName('needs-validation');
+                var validation = Array.prototype.filter.call(forms, function(form) {
+                    form.addEventListener('submit', function(event) {
+                        if (form.checkValidity() === false) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+                        form.classList.add('was-validated');
+                    }, false);
+                });
+            }, false);
+        })();
+    </script>
+</body>
+
+</html>
