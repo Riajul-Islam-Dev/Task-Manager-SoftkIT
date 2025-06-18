@@ -44,72 +44,187 @@ if (isset($_GET['list_id'])) {
 
 
 
-<html>
+<!DOCTYPE html>
+<html lang="en">
 
 <head>
-    <title>Task Manager</title>
-    <link rel="stylesheet" href="<?php echo SITEURL; ?>css/style.css" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6" crossorigin="anonymous">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update List - Task Manager - SoftkIT</title>
+
+    <link href="assets/img/favicon.png" rel="icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* GitHub-inspired theme */
+        body {
+            background-color: #0d1117;
+            color: #e6edf3;
+        }
+
+        .navbar-brand {
+            font-weight: 600;
+            color: #f0f6fc !important;
+        }
+
+        .card {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+        }
+
+        .card-header {
+            background-color: #21262d;
+            border-bottom: 1px solid #30363d;
+            color: #f0f6fc;
+        }
+
+        .form-label {
+            color: #f0f6fc;
+            font-weight: 500;
+        }
+
+        .form-control, .form-select {
+            background-color: #0d1117;
+            border: 1px solid #30363d;
+            color: #e6edf3;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background-color: #0d1117;
+            border-color: #388bfd;
+            color: #e6edf3;
+            box-shadow: 0 0 0 0.25rem rgba(56, 139, 253, 0.25);
+        }
+
+        .form-control::placeholder {
+            color: #7d8590;
+            opacity: 1;
+        }
+
+        .btn-primary {
+            background-color: #238636;
+            border-color: #238636;
+        }
+
+        .btn-primary:hover {
+            background-color: #2ea043;
+            border-color: #2ea043;
+        }
+
+        .btn-secondary {
+            background-color: #21262d;
+            border-color: #30363d;
+            color: #f0f6fc;
+        }
+
+        .btn-secondary:hover {
+            background-color: #30363d;
+            border-color: #484f58;
+            color: #f0f6fc;
+        }
+
+        .alert-success {
+            background-color: #0f5132;
+            border-color: #0a3622;
+            color: #75b798;
+        }
+
+        .alert-danger {
+            background-color: #842029;
+            border-color: #721c24;
+            color: #ea868f;
+        }
+
+        .navbar {
+            background-color: #21262d !important;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .navbar-nav .nav-link {
+            color: #e6edf3 !important;
+        }
+
+        .navbar-nav .nav-link:hover {
+            color: #58a6ff !important;
+        }
+    </style>
 </head>
 
 <body>
-
-    <div class="container">
-
-        <div class="row">
-
-            <div class="col-lg-3"></div>
-
-
-            <div class="col-lg-6">
-
-                <h1 class="text-center">Task Manager Application</h1>
-
-                <a class="btn-secondary" href="<?php echo SITEURL; ?>">Home</a>
-                <a class="btn-secondary" href="<?php echo SITEURL; ?>manage-list.php">Manage Lists</a>
-
-                <h3>Update List Page</h3>
-
-                <p>
-                    <?php
-                    //Check whether the session is set or not
-                    if (isset($_SESSION['update_fail'])) {
-                        echo $_SESSION['update_fail'];
-                        unset($_SESSION['update_fail']);
-                    }
-                    ?>
-                </p>
-
-                <form method="POST" action="">
-                    <div class="mb-3">
-                        <label for="exampleLabel" class="form-label">List Name</label>
-                        <input type="text" name="list_name" class="form-control" value="<?php echo $list_name; ?>" required="required" />
-
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="exampleDesc" class="form-label">List Description</label>
-                        <textarea name="list_description" class="form-control">
-                            <?php echo $list_description; ?>
-                        </textarea>
-                    </div>
-
-
-
-                    <button type="submit" name="submit" class="btn btn-primary">Make Changes</button>
-                </form>
-
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="<?php echo SITEURL; ?>">
+                <i class="fas fa-tasks me-2"></i>Task Manager
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?php echo SITEURL; ?>">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?php echo SITEURL; ?>manage-list.php">Manage Lists</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?php echo SITEURL; ?>add-list.php">Add List</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?php echo SITEURL; ?>calendar.php">Calendar</a>
+                    </li>
+                </ul>
             </div>
-
-
-            <div class="col-lg-3"></div>
-
         </div>
+    </nav>
 
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-edit me-2"></i>Update List
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <?php
+                        //Check whether the session is set or not
+                        if (isset($_SESSION['update_fail'])) {
+                            echo '<div class="alert alert-danger alert-dismissible fade show" role="alert">';
+                            echo $_SESSION['update_fail'];
+                            echo '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+                            echo '</div>';
+                            unset($_SESSION['update_fail']);
+                        }
+                        ?>
+
+                        <form method="POST" action="">
+                            <div class="mb-3">
+                                <label for="list_name" class="form-label">List Name</label>
+                                <input type="text" name="list_name" id="list_name" class="form-control" value="<?php echo htmlspecialchars($list_name); ?>" required />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="list_description" class="form-label">List Description</label>
+                                <textarea name="list_description" id="list_description" class="form-control" rows="3"><?php echo htmlspecialchars($list_description); ?></textarea>
+                            </div>
+
+                            <div class="d-flex justify-content-end">
+                                <button type="submit" name="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>
