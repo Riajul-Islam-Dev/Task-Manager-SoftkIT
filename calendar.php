@@ -113,7 +113,7 @@ $tasks_sql = "SELECT t.task_id, t.task_name, l.list_name FROM tbl_tasks t LEFT J
 $tasks_result = $conn->query($tasks_sql);
 
 // Get all lists for navigation
-$lists_sql = "SELECT * FROM tbl_lists ORDER BY list_name";
+$lists_sql = "SELECT * FROM tbl_lists ORDER BY list_id ASC";
 $lists_result = $conn->query($lists_sql);
 ?>
 

@@ -227,7 +227,7 @@ if (isset($_POST['submit'])) {
                                             throw new Exception("Connection failed: " . $conn->connect_error);
                                         }
 
-                                        $sql = "SELECT * FROM tbl_lists ORDER BY list_name";
+                                        $sql = "SELECT * FROM tbl_lists ORDER BY list_id ASC";
                                         $res = $conn->query($sql);
 
                                         if ($res && $res->num_rows > 0) {

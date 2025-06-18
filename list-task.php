@@ -133,7 +133,7 @@ if ($list_id > 0) {
                             throw new Exception("Connection failed: " . $conn2->connect_error);
                         }
 
-                        $sql2 = "SELECT * FROM tbl_lists ORDER BY list_name";
+                        $sql2 = "SELECT * FROM tbl_lists ORDER BY list_id ASC";
                         $res2 = $conn2->query($sql2);
 
                         if ($res2 && $res2->num_rows > 0) {
