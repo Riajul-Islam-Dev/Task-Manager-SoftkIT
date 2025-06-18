@@ -39,36 +39,79 @@ if ($list_id > 0) {
     <!-- SweetAlert2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.1/dist/sweetalert2.min.css" rel="stylesheet">
     <style>
+        /* GitHub-inspired theme */
         body {
-            background-color: #f8f9fa;
+            background-color: #0d1117;
+            color: #e6edf3;
         }
 
         .navbar-brand {
-            font-weight: bold;
-            color: #dc3545 !important;
+            font-weight: 600;
+            color: #f0f6fc !important;
         }
 
         .card {
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-            border: none;
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+        }
+
+        .card-header {
+            background-color: #21262d;
+            border-bottom: 1px solid #30363d;
+            color: #f0f6fc;
+        }
+
+        .table-dark {
+            background-color: #21262d;
+            border-color: #30363d;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: #262c36;
         }
 
         .priority-high {
-            border-left: 4px solid #dc3545;
+            color: #f85149;
+            font-weight: 600;
         }
 
         .priority-medium {
-            border-left: 4px solid #ffc107;
+            color: #d29922;
+            font-weight: 600;
         }
 
         .priority-low {
-            border-left: 4px solid #28a745;
+            color: #3fb950;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background-color: #238636;
+            border-color: #238636;
+        }
+
+        .btn-primary:hover {
+            background-color: #2ea043;
+            border-color: #2ea043;
+        }
+
+        .alert-success {
+            background-color: #0f2419;
+            border-color: #1a7f37;
+            color: #3fb950;
+        }
+
+        .alert-danger {
+            background-color: #2d1117;
+            border-color: #da3633;
+            color: #f85149;
         }
     </style>
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4" style="background-color: #21262d; border-bottom: 1px solid #30363d;">
         <div class="container">
             <a class="navbar-brand" href="<?php echo SITEURL; ?>">
                 <i class="fas fa-tasks me-2"></i>Task Manager - SoftkIT
@@ -128,8 +171,8 @@ if ($list_id > 0) {
     <div class="container">
         <?php if ($list_name): ?>
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="fas fa-list-ul me-2"></i><?php echo $list_name; ?> Tasks</h2>
-                <a href="<?php echo SITEURL; ?>add-task.php" class="btn btn-primary">
+                <h2 class="fw-semibold"><i class="fas fa-list-ul me-2"></i><?php echo $list_name; ?> Tasks</h2>
+                <a href="<?php echo SITEURL; ?>add-task.php" class="btn btn-primary btn-sm">
                     <i class="fas fa-plus me-1"></i>Add Task
                 </a>
             </div>
@@ -144,7 +187,7 @@ if ($list_id > 0) {
                 <div class="card">
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table class="table table-hover">
+                            <table class="table table-hover table-dark mb-0">
 
                                 <thead class="table-dark">
                                     <tr>
@@ -201,7 +244,7 @@ if ($list_id > 0) {
                                                             $formatted_deadline = $deadline_date->format('M j, Y');
                                                         }
                                                     } else {
-                                                        $formatted_deadline = '<small class="text-muted">No deadline</small>';
+                                                        $formatted_deadline = '<small>No deadline</small>';
                                                     }
 
                                                     // Priority styling
@@ -229,7 +272,7 @@ if ($list_id > 0) {
                                                             <div>
                                                                 <strong><?php echo $task_name; ?></strong>
                                                                 <?php if ($task_description): ?>
-                                                                    <br><small class="text-muted"><?php echo $task_description; ?></small>
+                                                                    <br><small><?php echo $task_description; ?></small>
                                                                 <?php endif; ?>
                                                             </div>
                                                         </td>
@@ -261,8 +304,8 @@ if ($list_id > 0) {
                                                 ?>
                                                 <tr>
                                                     <td colspan="5" class="text-center py-4">
-                                                        <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
-                                                        <p class="text-muted">No tasks in this list yet. <a href="<?php echo SITEURL; ?>add-task.php">Add your first task</a>!</p>
+                                                        <i class="fas fa-tasks fa-3x mb-3"></i>
+                            <p>No tasks in this list yet. <a href="<?php echo SITEURL; ?>add-task.php">Add your first task</a>!</p>
                                                     </td>
                                                 </tr>
                                     <?php

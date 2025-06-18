@@ -37,54 +37,150 @@ if (isset($_GET['task_id'])) {
 }
 ?>
 
-<html>
+<!DOCTYPE html>
+<html lang="en">
 
 <head>
-    <title>Task Manager</title>
-    <link rel="stylesheet" href="<?php echo SITEURL; ?>css/style.css" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6" crossorigin="anonymous">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Task - Task Manager - SoftkIT</title>
+
+    <link href="assets/img/favicon.png" rel="icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        /* GitHub-inspired theme */
+        body {
+            background-color: #0d1117;
+            color: #e6edf3;
+        }
+
+        .navbar-brand {
+            font-weight: 600;
+            color: #f0f6fc !important;
+        }
+
+        .card {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+        }
+
+        .card-header {
+            background-color: #21262d;
+            border-bottom: 1px solid #30363d;
+            color: #f0f6fc;
+        }
+
+        .form-label {
+            color: #f0f6fc;
+            font-weight: 500;
+        }
+
+        .form-control, .form-select {
+            background-color: #0d1117;
+            border: 1px solid #30363d;
+            color: #e6edf3;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background-color: #0d1117;
+            border-color: #388bfd;
+            color: #e6edf3;
+            box-shadow: 0 0 0 0.25rem rgba(56, 139, 253, 0.25);
+        }
+
+        .form-control::placeholder {
+            color: #7d8590;
+            opacity: 1;
+        }
+
+        .btn-primary {
+            background-color: #238636;
+            border-color: #238636;
+        }
+
+        .btn-primary:hover {
+            background-color: #2ea043;
+            border-color: #2ea043;
+        }
+
+        .btn-secondary {
+            background-color: #21262d;
+            border-color: #30363d;
+            color: #f0f6fc;
+        }
+
+        .btn-secondary:hover {
+            background-color: #30363d;
+            border-color: #484f58;
+            color: #f0f6fc;
+        }
+
+        .alert-success {
+            background-color: #0f2419;
+            border-color: #1a7f37;
+            color: #3fb950;
+        }
+
+        .alert-danger {
+            background-color: #2d1117;
+            border-color: #da3633;
+            color: #f85149;
+        }
+    </style>
 </head>
 
 <body>
 
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4" style="background-color: #21262d; border-bottom: 1px solid #30363d;">
+        <div class="container">
+            <a class="navbar-brand" href="<?php echo SITEURL; ?>">
+                <i class="fas fa-tasks me-2"></i>Task Manager - SoftkIT
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="<?php echo SITEURL; ?>">
+                    <i class="fas fa-home me-1"></i>Home
+                </a>
+            </div>
+        </div>
+    </nav>
+
     <div class="container">
-        <div class="row">
-            <div class="col-lg-3"></div>
-
-            <div class="col-lg-6">
-                <h1 class="text-center">Task Manager Application</h1>
-
-                <p>
-                    <a class="btn-secondary" href="<?php echo SITEURL; ?>">Home</a>
-                </p>
-
-                <h3>Update Task Page</h3>
-
-                <p>
-                    <?php
-                    if (isset($_SESSION['update_fail'])) {
-                        echo $_SESSION['update_fail'];
-                        unset($_SESSION['update_fail']);
-                    }
-                    ?>
-                </p>
-
-                <form method="POST" action="">
-                    <div class="mb-3">
-                        <label for="example" class="form-label">Task Name:</label>
-                        <input type="text" name="task_name" class="form-control" value="<?php echo $task_name; ?>" required="required" />
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title mb-0 fw-semibold">
+                            <i class="fas fa-edit me-2"></i>Update Task
+                        </h4>
                     </div>
+                    <div class="card-body">
+                        <?php
+                        if (isset($_SESSION['update_fail'])) {
+                            echo '<div class="alert alert-danger alert-dismissible fade show" role="alert">';
+                            echo $_SESSION['update_fail'];
+                            echo '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+                            echo '</div>';
+                            unset($_SESSION['update_fail']);
+                        }
+                        ?>
 
-                    <div class="mb-3">
-                        <label for="exampleInputPassword1" class="form-label">Task Description</label>
-                        <textarea name="task_description" class="form-control">
-                        <?php echo $task_description; ?>
-                        </textarea>
-                    </div>
+                        <form method="POST" action="">
+                            <div class="mb-3">
+                                <label for="task_name" class="form-label">Task Name:</label>
+                                <input type="text" id="task_name" name="task_name" class="form-control" value="<?php echo $task_name; ?>" required="required" />
+                            </div>
 
-                    <div class="mb-3">
-                        <label for="ascc" class="form-label">Select List:</label>
-                        <select name="list_id" class="form-select" id="">
+                            <div class="mb-3">
+                                <label for="task_description" class="form-label">Task Description</label>
+                                <textarea id="task_description" name="task_description" class="form-control" rows="3"><?php echo trim($task_description); ?></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="list_id" class="form-label">Select List:</label>
+                                <select id="list_id" name="list_id" class="form-select">
                             <?php
                             //Connect Database
                             $conn2 = mysqli_connect(LOCALHOST, DB_USERNAME, DB_PASSWORD) or die(mysqli_error());
@@ -133,9 +229,9 @@ if (isset($_GET['task_id'])) {
                         </select>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="example" class="form-label">Priority</label>
-                        <select name="priority" class="form-select" id="">
+                            <div class="mb-3">
+                                <label for="priority" class="form-label">Priority</label>
+                                <select id="priority" name="priority" class="form-select">
                             <option <?php if ($priority == "High") {
                                         echo "selected='selected'";
                                     } ?> value="High">High</option>
@@ -148,19 +244,24 @@ if (isset($_GET['task_id'])) {
                         </select>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="example" class="form-label">Deadline:</label>
-                        <input type="date" name="deadline" class="form-control" value="<?php echo $deadline; ?>" />
+                            <div class="mb-3">
+                                <label for="deadline" class="form-label">Deadline:</label>
+                                <input type="date" id="deadline" name="deadline" class="form-control" value="<?php echo $deadline; ?>" />
+                            </div>
+
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <button type="submit" class="btn btn-primary" name="submit">
+                                    <i class="fas fa-save me-1"></i>Update Task
+                                </button>
+                            </div>
+                        </form>
                     </div>
-
-
-                    <button type="submit" class="btn btn-primary" name="submit">Make Changes</button>
-                </form>
+                </div>
             </div>
-
-            <div class="col-lg-3"></div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 

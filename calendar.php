@@ -135,26 +135,176 @@ $lists_result = $conn->query($lists_sql);
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.1/dist/sweetalert2.min.css" rel="stylesheet">
     
     <style>
+        /* GitHub-inspired theme */
+        body {
+            background-color: #0d1117;
+            color: #e6edf3;
+        }
+
         .navbar-brand {
             font-weight: 600;
+            color: #f0f6fc !important;
         }
+
+        .card {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+        }
+
+        .card-header {
+            background-color: #21262d;
+            border-bottom: 1px solid #30363d;
+            color: #f0f6fc;
+        }
+
+        .modal-content {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+        }
+
+        .modal-header {
+            background-color: #21262d;
+            border-bottom: 1px solid #30363d;
+            color: #f0f6fc;
+        }
+
+        .modal-body {
+            background-color: #161b22;
+            color: #e6edf3;
+        }
+
+        .form-label {
+            color: #f0f6fc;
+            font-weight: 500;
+        }
+
+        .form-control, .form-select {
+            background-color: #0d1117;
+            border: 1px solid #30363d;
+            color: #e6edf3;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background-color: #0d1117;
+            border-color: #388bfd;
+            color: #e6edf3;
+            box-shadow: 0 0 0 0.25rem rgba(56, 139, 253, 0.25);
+        }
+
+        .form-control::placeholder {
+            color: #7d8590;
+            opacity: 1;
+        }
+
+        .btn-primary {
+            background-color: #238636;
+            border-color: #238636;
+        }
+
+        .btn-primary:hover {
+            background-color: #2ea043;
+            border-color: #2ea043;
+        }
+
+        .btn-secondary {
+            background-color: #21262d;
+            border-color: #30363d;
+            color: #f0f6fc;
+        }
+
+        .btn-secondary:hover {
+            background-color: #30363d;
+            border-color: #484f58;
+            color: #f0f6fc;
+        }
+
         .calendar-container {
-            background: white;
+            background: #161b22;
             border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
             padding: 20px;
+            border: 1px solid #30363d;
         }
+
+        .fc-toolbar {
+            background-color: #21262d;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            border: 1px solid #30363d;
+        }
+
+        .fc-toolbar-title {
+            color: #f0f6fc !important;
+        }
+
+        .fc-button {
+            background-color: #238636 !important;
+            border-color: #238636 !important;
+            color: #fff !important;
+        }
+
+        .fc-button:hover {
+            background-color: #2ea043 !important;
+            border-color: #2ea043 !important;
+        }
+
+        .fc-daygrid-day {
+            background-color: #0d1117;
+        }
+
+        .fc-col-header-cell {
+            background-color: #21262d;
+            color: #f0f6fc;
+        }
+
         .fc-event {
             cursor: pointer;
+            border: none;
+            border-radius: 4px;
         }
+
+        .fc-event-task {
+            background-color: #388bfd;
+            color: white;
+        }
+
+        .fc-event-event {
+            background-color: #3fb950;
+            color: white;
+        }
+
+        .fc-event-meeting {
+            background-color: #d29922;
+            color: white;
+        }
+
+        .fc-event-reminder {
+            background-color: #a5a5f0;
+            color: white;
+        }
+
         .priority-high { border-left: 4px solid #dc3545 !important; }
         .priority-medium { border-left: 4px solid #ffc107 !important; }
         .priority-low { border-left: 4px solid #28a745 !important; }
+
+        .alert-success {
+            background-color: #0f2419;
+            border-color: #1a7f37;
+            color: #3fb950;
+        }
+
+        .alert-danger {
+            background-color: #2d1117;
+            border-color: #da3633;
+            color: #f85149;
+        }
     </style>
 </head>
-<body class="bg-light">
+  <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #21262d; border-bottom: 1px solid #30363d;">
         <div class="container">
             <a class="navbar-brand" href="index.php">
                 <i class="fas fa-tasks me-2"></i>Task Manager
@@ -207,11 +357,11 @@ $lists_result = $conn->query($lists_sql);
         <!-- Page Header -->
         <div class="row mb-4">
             <div class="col-md-8">
-                <h2><i class="fas fa-calendar text-primary me-2"></i>Task Calendar</h2>
-                <p class="text-muted">Schedule and view your tasks on the calendar</p>
+                <h2 class="fw-semibold"><i class="fas fa-calendar me-2"></i>Task Calendar</h2>
+                <p>Schedule and view your tasks on the calendar</p>
             </div>
             <div class="col-md-4 text-end">
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEventModal">
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addEventModal">
                     <i class="fas fa-plus me-1"></i>Add Event
                 </button>
             </div>

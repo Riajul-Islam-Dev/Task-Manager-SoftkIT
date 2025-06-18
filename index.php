@@ -15,39 +15,79 @@ require_once('config/constants.php');
     <!-- SweetAlert2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.1/dist/sweetalert2.min.css" rel="stylesheet">
     <style>
+        /* GitHub-inspired theme */
         body {
-            background-color: #f8f9fa;
+            background-color: #0d1117;
+            color: #e6edf3;
         }
 
         .navbar-brand {
-            font-weight: bold;
-            color: #dc3545 !important;
+            font-weight: 600;
+            color: #f0f6fc !important;
         }
 
         .card {
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-            border: none;
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+        }
+
+        .card-header {
+            background-color: #21262d;
+            border-bottom: 1px solid #30363d;
+            color: #f0f6fc;
+        }
+
+        .table-dark {
+            background-color: #21262d;
+            border-color: #30363d;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: #262c36;
         }
 
         .priority-high {
-            color: #dc3545;
-            font-weight: bold;
+            color: #f85149;
+            font-weight: 600;
         }
 
         .priority-medium {
-            color: #fd7e14;
-            font-weight: bold;
+            color: #d29922;
+            font-weight: 600;
         }
 
         .priority-low {
-            color: #198754;
-            font-weight: bold;
+            color: #3fb950;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background-color: #238636;
+            border-color: #238636;
+        }
+
+        .btn-primary:hover {
+            background-color: #2ea043;
+            border-color: #2ea043;
+        }
+
+        .alert-success {
+            background-color: #0f2419;
+            border-color: #1a7f37;
+            color: #3fb950;
+        }
+
+        .alert-danger {
+            background-color: #2d1117;
+            border-color: #da3633;
+            color: #f85149;
         }
     </style>
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4" style="background-color: #21262d; border-bottom: 1px solid #30363d;">
         <div class="container">
             <a class="navbar-brand" href="<?php echo SITEURL; ?>">
                 <i class="fas fa-tasks me-2"></i>Task Manager - SoftkIT
@@ -129,16 +169,16 @@ require_once('config/constants.php');
             <div class="col-12">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">
+                        <h5 class="card-title mb-0 fw-semibold">
                             <i class="fas fa-list me-2"></i>All Tasks
                         </h5>
-                        <a href="<?php echo SITEURL; ?>add-task.php" class="btn btn-primary">
+                        <a href="<?php echo SITEURL; ?>add-task.php" class="btn btn-primary btn-sm">
                             <i class="fas fa-plus me-1"></i>Add Task
                         </a>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table class="table table-hover">
+                            <table class="table table-hover table-dark mb-0">
 
                                 <thead class="table-dark">
                                     <tr>
@@ -183,7 +223,7 @@ require_once('config/constants.php');
                                                     <td>
                                                         <strong><?php echo $task_name; ?></strong>
                                                         <?php if (!empty($row['task_description'])): ?>
-                                                            <br><small class="text-muted"><?php echo htmlspecialchars($row['task_description']); ?></small>
+                                                            <br><small><?php echo htmlspecialchars($row['task_description']); ?></small>
                                                         <?php endif; ?>
                                                     </td>
                                                     <td>
@@ -212,8 +252,8 @@ require_once('config/constants.php');
                                             ?>
                                             <tr>
                                                 <td colspan="5" class="text-center py-4">
-                                                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                                                    <p class="text-muted">No tasks added yet. <a href="<?php echo SITEURL; ?>add-task.php">Add your first task</a>!</p>
+                                                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                            <p>No tasks added yet. <a href="<?php echo SITEURL; ?>add-task.php">Add your first task</a>!</p>
                                                 </td>
                                             </tr>
                                     <?php

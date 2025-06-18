@@ -71,24 +71,90 @@ if (isset($_POST['submit'])) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
+        /* GitHub-inspired theme */
         body {
-            background-color: #f8f9fa;
+            background-color: #0d1117;
+            color: #e6edf3;
         }
 
         .navbar-brand {
-            font-weight: bold;
-            color: #dc3545 !important;
+            font-weight: 600;
+            color: #f0f6fc !important;
         }
 
         .card {
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-            border: none;
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+        }
+
+        .card-header {
+            background-color: #21262d;
+            border-bottom: 1px solid #30363d;
+            color: #f0f6fc;
+        }
+
+        .form-label {
+            color: #f0f6fc;
+            font-weight: 500;
+        }
+
+        .form-control, .form-select {
+            background-color: #0d1117;
+            border: 1px solid #30363d;
+            color: #e6edf3;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background-color: #0d1117;
+            border-color: #388bfd;
+            color: #e6edf3;
+            box-shadow: 0 0 0 0.25rem rgba(56, 139, 253, 0.25);
+        }
+
+        .form-control::placeholder {
+            color: #7d8590;
+            opacity: 1;
+        }
+
+        .btn-primary {
+            background-color: #238636;
+            border-color: #238636;
+        }
+
+        .btn-primary:hover {
+            background-color: #2ea043;
+            border-color: #2ea043;
+        }
+
+        .btn-secondary {
+            background-color: #21262d;
+            border-color: #30363d;
+            color: #f0f6fc;
+        }
+
+        .btn-secondary:hover {
+            background-color: #30363d;
+            border-color: #484f58;
+            color: #f0f6fc;
+        }
+
+        .alert-success {
+            background-color: #0f2419;
+            border-color: #1a7f37;
+            color: #3fb950;
+        }
+
+        .alert-danger {
+            background-color: #2d1117;
+            border-color: #da3633;
+            color: #f85149;
         }
     </style>
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4" style="background-color: #21262d; border-bottom: 1px solid #30363d;">
         <div class="container">
             <a class="navbar-brand" href="<?php echo SITEURL; ?>">
                 <i class="fas fa-tasks me-2"></i>Task Manager - SoftkIT
@@ -112,7 +178,7 @@ if (isset($_POST['submit'])) {
             <div class="col-lg-8">
                 <div class="card">
                     <div class="card-header">
-                        <h4 class="card-title mb-0">
+                        <h4 class="card-title mb-0 fw-semibold">
                             <i class="fas fa-plus-circle me-2"></i>Add New Task
                         </h4>
                     </div>
