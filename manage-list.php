@@ -76,6 +76,11 @@ require_once('config/constants.php');
                             <i class="fas fa-cog me-1"></i>Manage Lists
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?php echo SITEURL; ?>calendar.php">
+                            <i class="fas fa-calendar me-1"></i>Calendar
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>

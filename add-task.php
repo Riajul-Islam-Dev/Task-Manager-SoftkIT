@@ -97,6 +97,12 @@ if (isset($_POST['submit'])) {
                 <a class="nav-link" href="<?php echo SITEURL; ?>">
                     <i class="fas fa-home me-1"></i>Home
                 </a>
+                <a class="nav-link" href="manage-list.php">
+                    <i class="fas fa-list me-1"></i>Manage Lists
+                </a>
+                <a class="nav-link" href="calendar.php">
+                    <i class="fas fa-calendar me-1"></i>Calendar
+                </a>
             </div>
         </div>
     </nav>

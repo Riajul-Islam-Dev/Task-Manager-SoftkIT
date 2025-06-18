@@ -113,6 +113,11 @@ if ($list_id > 0) {
                             <i class="fas fa-cog me-1"></i>Manage Lists
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="calendar.php">
+                            <i class="fas fa-calendar me-1"></i>Calendar
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>
