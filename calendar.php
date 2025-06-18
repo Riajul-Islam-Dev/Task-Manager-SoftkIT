@@ -131,6 +131,8 @@ $lists_result = $conn->query($lists_sql);
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <!-- FullCalendar CSS -->
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+    <!-- SweetAlert2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.1/dist/sweetalert2.min.css" rel="stylesheet">
     
     <style>
         .navbar-brand {
@@ -332,6 +334,8 @@ $lists_result = $conn->query($lists_sql);
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- FullCalendar JS -->
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.1/dist/sweetalert2.all.min.js"></script>
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -346,7 +350,12 @@ $lists_result = $conn->query($lists_sql);
                 events: {
                     url: 'calendar.php?action=get_events',
                     failure: function() {
-                        alert('There was an error while fetching events!');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: 'There was an error while fetching events!',
+                            confirmButtonColor: '#dc3545'
+                        });
                     }
                 },
                 eventClick: function(info) {
@@ -379,9 +388,19 @@ $lists_result = $conn->query($lists_sql);
                 var deleteBtn = document.getElementById('deleteEventBtn');
                 deleteBtn.style.display = 'inline-block';
                 deleteBtn.onclick = function() {
-                    if (confirm('Are you sure you want to delete this event?')) {
-                        deleteEvent(event.id);
-                    }
+                    Swal.fire({
+                        title: 'Are you sure?',
+                        text: 'You won\'t be able to revert this!',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#dc3545',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Yes, delete it!'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            deleteEvent(event.id);
+                        }
+                    });
                 };
                 
                 var eventModal = new bootstrap.Modal(document.getElementById('eventDetailsModal'));

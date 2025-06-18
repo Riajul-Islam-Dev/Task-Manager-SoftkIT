@@ -12,6 +12,8 @@ require_once('config/constants.php');
     <link href="assets/img/favicon.png" rel="icon">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- SweetAlert2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.1/dist/sweetalert2.min.css" rel="stylesheet">
     <style>
         body {
             background-color: #f8f9fa;
@@ -175,11 +177,11 @@ require_once('config/constants.php');
                                                                 class="btn btn-outline-primary btn-sm" title="Edit List">
                                                                 <i class="fas fa-edit"></i>
                                                             </a>
-                                                            <a href="<?php echo SITEURL; ?>delete-list.php?list_id=<?php echo $list_id; ?>"
-                                                                class="btn btn-outline-danger btn-sm" title="Delete List"
-                                                                onclick="return confirm('Are you sure you want to delete this list? This will also delete all tasks in this list.')">
-                                                                <i class="fas fa-trash"></i>
-                                                            </a>
+                                                            <a href="#"
+                                                class="btn btn-outline-danger btn-sm" title="Delete List"
+                                                onclick="confirmDeleteList(<?php echo $list_id; ?>)">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -213,6 +215,26 @@ require_once('config/constants.php');
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.1/dist/sweetalert2.all.min.js"></script>
+    
+    <script>
+        function confirmDeleteList(listId) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'This will delete the list and all tasks in it. You won\'t be able to revert this!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = '<?php echo SITEURL; ?>delete-list.php?list_id=' + listId;
+                }
+            });
+        }
+    </script>
 </body>
 
 </html>
