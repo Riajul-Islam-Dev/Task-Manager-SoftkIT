@@ -16,17 +16,17 @@ define('SESSION_CONFIG', [
 final readonly class Environment
 {
     public const LOCAL_HOSTS = ['localhost', 'tm.softkit.io.test', '127.0.0.1'];
-    
+
     public static function isLocal(): bool
     {
         return in_array($_SERVER['HTTP_HOST'] ?? '', self::LOCAL_HOSTS, true);
     }
-    
+
     public static function isProduction(): bool
     {
         return !self::isLocal();
     }
-    
+
     public static function getHost(): string
     {
         return $_SERVER['HTTP_HOST'] ?? 'localhost';
@@ -44,9 +44,9 @@ if (Environment::isLocal()) {
     define('DB_NAME', 'task_manager');
 } else {
     // Live server environment
-    define('DB_USERNAME', 'u574849695_taskmanager');
-    define('DB_PASSWORD', 'TaskManager@2024');
-    define('DB_NAME', 'u574849695_taskmanager');
+    define('DB_USERNAME', 'softkitx_task_manager_user');
+    define('DB_PASSWORD', 'Gv8#zPq9Xr!mL2');
+    define('DB_NAME', 'softkitx_task_manager');
 }
 
 // Site URL configuration with proper protocol detection
