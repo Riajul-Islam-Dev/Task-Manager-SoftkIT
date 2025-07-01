@@ -16,10 +16,9 @@ define('DB_NAME', 'task_manager');
 // define('SITEURL', 'http://127.0.0.1/Task-Manager-SoftkIT/');
 
 if ($_SERVER['HTTP_HOST'] == 'localhost') {
-    define("SITEURL", "http://localhost/Task-Manager-SoftkIT/");
+    // Laragon local development
+    define("SITEURL", "http://localhost/tm.softkit.io/");
 } else {
-    // Local
-    define("SITEURL", "http://127.0.0.1/tm.softkit.io/");
-    // Live
-    // define("SITEURL", "https://tm.softkit.io/");
+    // Live server
+    define("SITEURL", "https://tm.softkit.io/");
 }
