@@ -10,10 +10,11 @@ require_once('config/constants.php');
     <title>Manage Lists - Task Manager - SoftkIT</title>
 
     <link href="assets/img/favicon.png" rel="icon">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/all.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
     <!-- SweetAlert2 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.1/dist/sweetalert2.min.css" rel="stylesheet">
+    <link href="css/sweetalert2.min.css" rel="stylesheet">
     <style>
         /* GitHub-inspired theme */
         body {
@@ -218,10 +219,10 @@ require_once('config/constants.php');
                                                                 <i class="fas fa-edit"></i>
                                                             </a>
                                                             <a href="#"
-                                                class="btn btn-outline-danger btn-sm" title="Delete List"
-                                                onclick="confirmDeleteList(<?php echo $list_id; ?>)">
-                                                <i class="fas fa-trash"></i>
-                                            </a>
+                                                                class="btn btn-outline-danger btn-sm" title="Delete List"
+                                                                onclick="confirmDeleteList(<?php echo $list_id; ?>)">
+                                                                <i class="fas fa-trash"></i>
+                                                            </a>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -232,7 +233,7 @@ require_once('config/constants.php');
                                             <tr>
                                                 <td colspan="4" class="text-center py-4">
                                                     <i class="fas fa-folder-open fa-3x mb-3"></i>
-                            <p>No lists created yet. <a href="<?php echo SITEURL; ?>add-list.php">Create your first list</a>!</p>
+                                                    <p>No lists created yet. <a href="<?php echo SITEURL; ?>add-list.php">Create your first list</a>!</p>
                                                 </td>
                                             </tr>
                                     <?php
@@ -254,10 +255,10 @@ require_once('config/constants.php');
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/bootstrap.bundle.min.js"></script>
     <!-- SweetAlert2 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.1/dist/sweetalert2.all.min.js"></script>
-    
+    <script src="js/sweetalert2.all.min.js"></script>
+
     <script>
         function confirmDeleteList(listId) {
             Swal.fire({

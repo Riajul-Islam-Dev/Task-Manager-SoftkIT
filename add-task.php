@@ -68,8 +68,8 @@ if (isset($_POST['submit'])) {
     <title>Add Task - Task Manager - SoftkIT</title>
 
     <link href="assets/img/favicon.png" rel="icon">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/all.min.css" rel="stylesheet">
     <style>
         /* GitHub-inspired theme */
         body {
@@ -99,13 +99,15 @@ if (isset($_POST['submit'])) {
             font-weight: 500;
         }
 
-        .form-control, .form-select {
+        .form-control,
+        .form-select {
             background-color: #0d1117;
             border: 1px solid #30363d;
             color: #e6edf3;
         }
 
-        .form-control:focus, .form-select:focus {
+        .form-control:focus,
+        .form-select:focus {
             background-color: #0d1117;
             border-color: #388bfd;
             color: #e6edf3;
@@ -287,7 +289,7 @@ if (isset($_POST['submit'])) {
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/bootstrap.bundle.min.js"></script>
     <script>
         // Bootstrap form validation
         (function() {

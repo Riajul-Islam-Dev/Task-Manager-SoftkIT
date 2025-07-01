@@ -46,9 +46,9 @@ if (isset($_GET['task_id'])) {
     <title>Update Task - Task Manager - SoftkIT</title>
 
     <link href="assets/img/favicon.png" rel="icon">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/all.min.css" rel="stylesheet">
+
     <style>
         /* GitHub-inspired theme */
         body {
@@ -78,13 +78,15 @@ if (isset($_GET['task_id'])) {
             font-weight: 500;
         }
 
-        .form-control, .form-select {
+        .form-control,
+        .form-select {
             background-color: #0d1117;
             border: 1px solid #30363d;
             color: #e6edf3;
         }
 
-        .form-control:focus, .form-select:focus {
+        .form-control:focus,
+        .form-select:focus {
             background-color: #0d1117;
             border-color: #388bfd;
             color: #e6edf3;
@@ -181,68 +183,68 @@ if (isset($_GET['task_id'])) {
                             <div class="mb-3">
                                 <label for="list_id" class="form-label">Select List:</label>
                                 <select id="list_id" name="list_id" class="form-select">
-                            <?php
-                            //Connect Database
-                            $conn2 = mysqli_connect(LOCALHOST, DB_USERNAME, DB_PASSWORD) or die(mysqli_error());
-
-                            //SElect Database
-                            $db_select2 = mysqli_select_db($conn2, DB_NAME) or die(mysqli_error());
-
-                            //SQL Query to GET Lists
-                            $sql2 = "SELECT * FROM tbl_lists";
-
-                            //Execute Query
-                            $res2 = mysqli_query($conn2, $sql2);
-
-                            //Check if executed successfully or not
-                            if ($res2 == true) {
-                                //Display the Lists
-                                //Count Rows
-                                $count_rows2 = mysqli_num_rows($res2);
-
-                                //Check whether list is added or not
-                                if ($count_rows2 > 0) {
-                                    //Lists are Added
-                                    while ($row2 = mysqli_fetch_assoc($res2)) {
-                                        //Get individual value
-                                        $list_id_db = $row2['list_id'];
-                                        $list_name = $row2['list_name'];
-                            ?>
-
-                                        <option <?php if ($list_id_db == $list_id) {
-                                                    echo "selected='selected'";
-                                                } ?> value="<?php echo $list_id_db; ?>"><?php echo $list_name; ?></option>
-
                                     <?php
-                                    }
-                                } else {
-                                    //No List Added
-                                    //Display None as option
+                                    //Connect Database
+                                    $conn2 = mysqli_connect(LOCALHOST, DB_USERNAME, DB_PASSWORD) or die(mysqli_error());
+
+                                    //SElect Database
+                                    $db_select2 = mysqli_select_db($conn2, DB_NAME) or die(mysqli_error());
+
+                                    //SQL Query to GET Lists
+                                    $sql2 = "SELECT * FROM tbl_lists";
+
+                                    //Execute Query
+                                    $res2 = mysqli_query($conn2, $sql2);
+
+                                    //Check if executed successfully or not
+                                    if ($res2 == true) {
+                                        //Display the Lists
+                                        //Count Rows
+                                        $count_rows2 = mysqli_num_rows($res2);
+
+                                        //Check whether list is added or not
+                                        if ($count_rows2 > 0) {
+                                            //Lists are Added
+                                            while ($row2 = mysqli_fetch_assoc($res2)) {
+                                                //Get individual value
+                                                $list_id_db = $row2['list_id'];
+                                                $list_name = $row2['list_name'];
                                     ?>
-                                    <option <?php if ($list_id = 0) {
-                                                echo "selected='selected'";
-                                            } ?> value="0">None</option>p
-                            <?php
-                                }
-                            }
-                            ?>
-                        </select>
-                    </div>
+
+                                                <option <?php if ($list_id_db == $list_id) {
+                                                            echo "selected='selected'";
+                                                        } ?> value="<?php echo $list_id_db; ?>"><?php echo $list_name; ?></option>
+
+                                            <?php
+                                            }
+                                        } else {
+                                            //No List Added
+                                            //Display None as option
+                                            ?>
+                                            <option <?php if ($list_id = 0) {
+                                                        echo "selected='selected'";
+                                                    } ?> value="0">None</option>p
+                                    <?php
+                                        }
+                                    }
+                                    ?>
+                                </select>
+                            </div>
 
                             <div class="mb-3">
                                 <label for="priority" class="form-label">Priority</label>
                                 <select id="priority" name="priority" class="form-select">
-                            <option <?php if ($priority == "High") {
-                                        echo "selected='selected'";
-                                    } ?> value="High">High</option>
-                            <option <?php if ($priority == "Medium") {
-                                        echo "selected='selected'";
-                                    } ?> value="Medium">Medium</option>
-                            <option <?php if ($priority == "Low") {
-                                        echo "selected='selected'";
-                                    } ?> value="Low">Low</option>
-                        </select>
-                    </div>
+                                    <option <?php if ($priority == "High") {
+                                                echo "selected='selected'";
+                                            } ?> value="High">High</option>
+                                    <option <?php if ($priority == "Medium") {
+                                                echo "selected='selected'";
+                                            } ?> value="Medium">Medium</option>
+                                    <option <?php if ($priority == "Low") {
+                                                echo "selected='selected'";
+                                            } ?> value="Low">Low</option>
+                                </select>
+                            </div>
 
                             <div class="mb-3">
                                 <label for="deadline" class="form-label">Deadline:</label>
@@ -261,7 +263,7 @@ if (isset($_GET['task_id'])) {
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/bootstrap.bundle.min.js"></script>
 
 </body>
 

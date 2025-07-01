@@ -12,29 +12,29 @@ if ($conn->connect_error) {
 // Handle AJAX requests for calendar events
 if (isset($_GET['action'])) {
     header('Content-Type: application/json');
-    
+
     if ($_GET['action'] == 'get_events') {
         $start = $_GET['start'] ?? '';
         $end = $_GET['end'] ?? '';
-        
+
         $sql = "SELECT ce.*, t.task_name, t.task_description, t.priority, l.list_name 
                 FROM tbl_calendar_events ce 
                 LEFT JOIN tbl_tasks t ON ce.task_id = t.task_id 
                 LEFT JOIN tbl_lists l ON t.list_id = l.list_id 
                 WHERE ce.event_date BETWEEN ? AND ?";
-        
+
         $stmt = $conn->prepare($sql);
         $stmt->bind_param('ss', $start, $end);
         $stmt->execute();
         $result = $stmt->get_result();
-        
+
         $events = [];
         while ($row = $result->fetch_assoc()) {
             $color = '#007bff'; // Default blue
             if ($row['priority'] == 'High') $color = '#dc3545'; // Red
             elseif ($row['priority'] == 'Medium') $color = '#ffc107'; // Yellow
             elseif ($row['priority'] == 'Low') $color = '#28a745'; // Green
-            
+
             $events[] = [
                 'id' => $row['event_id'],
                 'title' => $row['task_name'] ?: $row['event_title'],
@@ -50,7 +50,7 @@ if (isset($_GET['action'])) {
                 ]
             ];
         }
-        
+
         echo json_encode($events);
         exit;
     }
@@ -66,38 +66,38 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $event_time = $_POST['event_time'];
             $event_type = $_POST['event_type'];
             $task_id = !empty($_POST['task_id']) ? $_POST['task_id'] : null;
-            
+
             if (empty($event_title) || empty($event_date)) {
                 $_SESSION['error'] = 'Event title and date are required.';
             } else {
                 $sql = "INSERT INTO tbl_calendar_events (event_title, event_description, event_date, event_time, event_type, task_id) VALUES (?, ?, ?, ?, ?, ?)";
                 $stmt = $conn->prepare($sql);
                 $stmt->bind_param('sssssi', $event_title, $event_description, $event_date, $event_time, $event_type, $task_id);
-                
+
                 if ($stmt->execute()) {
                     $_SESSION['success'] = 'Calendar event added successfully!';
                 } else {
                     $_SESSION['error'] = 'Failed to add calendar event.';
                 }
             }
-            
+
             header('Location: calendar.php');
             exit;
         }
-        
+
         if (isset($_POST['delete_event'])) {
             $event_id = $_POST['event_id'];
-            
+
             $sql = "DELETE FROM tbl_calendar_events WHERE event_id = ?";
             $stmt = $conn->prepare($sql);
             $stmt->bind_param('i', $event_id);
-            
+
             if ($stmt->execute()) {
                 $_SESSION['success'] = 'Event deleted successfully!';
             } else {
                 $_SESSION['error'] = 'Failed to delete event.';
             }
-            
+
             header('Location: calendar.php');
             exit;
         }
@@ -119,21 +119,19 @@ $lists_result = $conn->query($lists_sql);
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calendar - Task Manager</title>
     <link rel="icon" type="image/png" href="assets/img/favicon.png">
-    
+
     <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- FullCalendar CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+    <link href="css/all.min.css" rel="stylesheet">
     <!-- SweetAlert2 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.1/dist/sweetalert2.min.css" rel="stylesheet">
-    
+    <link href="css/sweetalert2.min.css" rel="stylesheet">
     <style>
         /* GitHub-inspired theme */
         body {
@@ -179,13 +177,15 @@ $lists_result = $conn->query($lists_sql);
             font-weight: 500;
         }
 
-        .form-control, .form-select {
+        .form-control,
+        .form-select {
             background-color: #0d1117;
             border: 1px solid #30363d;
             color: #e6edf3;
         }
 
-        .form-control:focus, .form-select:focus {
+        .form-control:focus,
+        .form-select:focus {
             background-color: #0d1117;
             border-color: #388bfd;
             color: #e6edf3;
@@ -222,7 +222,7 @@ $lists_result = $conn->query($lists_sql);
         .calendar-container {
             background: #161b22;
             border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
             padding: 20px;
             border: 1px solid #30363d;
         }
@@ -285,9 +285,17 @@ $lists_result = $conn->query($lists_sql);
             color: white;
         }
 
-        .priority-high { border-left: 4px solid #dc3545 !important; }
-        .priority-medium { border-left: 4px solid #ffc107 !important; }
-        .priority-low { border-left: 4px solid #28a745 !important; }
+        .priority-high {
+            border-left: 4px solid #dc3545 !important;
+        }
+
+        .priority-medium {
+            border-left: 4px solid #ffc107 !important;
+        }
+
+        .priority-low {
+            border-left: 4px solid #28a745 !important;
+        }
 
         .alert-success {
             background-color: #0f2419;
@@ -302,7 +310,8 @@ $lists_result = $conn->query($lists_sql);
         }
     </style>
 </head>
-  <body>
+
+<body>
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #21262d; border-bottom: 1px solid #30363d;">
         <div class="container">
@@ -438,7 +447,7 @@ $lists_result = $conn->query($lists_sql);
                                 <?php if ($tasks_result && $tasks_result->num_rows > 0): ?>
                                     <?php while ($task = $tasks_result->fetch_assoc()): ?>
                                         <option value="<?= $task['task_id'] ?>">
-                                            <?= htmlspecialchars($task['task_name']) ?> 
+                                            <?= htmlspecialchars($task['task_name']) ?>
                                             <?php if ($task['list_name']): ?>
                                                 (<?= htmlspecialchars($task['list_name']) ?>)
                                             <?php endif; ?>
@@ -481,12 +490,12 @@ $lists_result = $conn->query($lists_sql);
     </div>
 
     <!-- Bootstrap 5 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/bootstrap.bundle.min.js"></script>
     <!-- FullCalendar JS -->
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+    <script src="js/index.global.min.js"></script>
     <!-- SweetAlert2 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.1/dist/sweetalert2.all.min.js"></script>
-    
+    <script src="js/sweetalert2.all.min.js"></script>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             var calendarEl = document.getElementById('calendar');
@@ -518,9 +527,9 @@ $lists_result = $conn->query($lists_sql);
                     addEventModal.show();
                 }
             });
-            
+
             calendar.render();
-            
+
             function showEventDetails(event) {
                 var content = `
                     <h6><strong>${event.title}</strong></h6>
@@ -531,9 +540,9 @@ $lists_result = $conn->query($lists_sql);
                     ${event.extendedProps.list_name ? `<p><strong>List:</strong> ${event.extendedProps.list_name}</p>` : ''}
                     ${event.extendedProps.event_type ? `<p><strong>Type:</strong> ${event.extendedProps.event_type}</p>` : ''}
                 `;
-                
+
                 document.getElementById('eventDetailsContent').innerHTML = content;
-                
+
                 // Show delete button and set up delete functionality
                 var deleteBtn = document.getElementById('deleteEventBtn');
                 deleteBtn.style.display = 'inline-block';
@@ -552,20 +561,24 @@ $lists_result = $conn->query($lists_sql);
                         }
                     });
                 };
-                
+
                 var eventModal = new bootstrap.Modal(document.getElementById('eventDetailsModal'));
                 eventModal.show();
             }
-            
+
             function getPriorityColor(priority) {
-                switch(priority) {
-                    case 'High': return 'danger';
-                    case 'Medium': return 'warning';
-                    case 'Low': return 'success';
-                    default: return 'primary';
+                switch (priority) {
+                    case 'High':
+                        return 'danger';
+                    case 'Medium':
+                        return 'warning';
+                    case 'Low':
+                        return 'success';
+                    default:
+                        return 'primary';
                 }
             }
-            
+
             function deleteEvent(eventId) {
                 var form = document.createElement('form');
                 form.method = 'POST';
@@ -579,4 +592,5 @@ $lists_result = $conn->query($lists_sql);
         });
     </script>
 </body>
+
 </html>
