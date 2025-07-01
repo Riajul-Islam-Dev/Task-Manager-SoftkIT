@@ -1,41 +1,75 @@
 <?php
-//Include constants.php
-include('config/constants.php');
-//echo "Delete List Page";
 
-//Check whether the list_id is assigned or not
+declare(strict_types=1);
 
-if (isset($_GET['list_id'])) {
-    //Delete the List from database
+// Include modern configuration and classes
+require_once 'config/constants.php';
+require_once 'config/Database.php';
+require_once 'config/Session.php';
+require_once 'config/Enums.php';
 
-    //Get the list_id value from URL or Get Method
-    $list_id = $_GET['list_id'];
+// Start session
+Session::start();
 
-    //Connect the DAtabase
-    $conn = mysqli_connect(LOCALHOST, DB_USERNAME, DB_PASSWORD) or die(mysqli_error());
-
-    //SElect Database
-    $db_select = mysqli_select_db($conn, DB_NAME) or die(mysqli_error());
-
-    //Write the Query to DELETE List from DAtabase
-    $sql = "DELETE FROM tbl_lists WHERE list_id=$list_id";
-
-    //Execute The Query
-    $res = mysqli_query($conn, $sql);
-
-    //Check whether the query executed successfully or not
-    if ($res == true) {
-        //Query Executed Successfully which means list is deleted successfully
-        $_SESSION['delete'] = "List Deleted Successfully";
-
-        //Redirect to Manage List Page
-        header('location:' . SITEURL . 'manage-list.php');
-    } else {
-        //Failed to Delete List
-        $_SESSION['delete_fail'] = "Failed to Delete List.";
-        header('location:' . SITEURL . 'manage-list.php');
+// Check whether the list_id is assigned and valid
+if (isset($_GET['list_id']) && is_numeric($_GET['list_id'])) {
+    $listId = (int) $_GET['list_id'];
+    
+    try {
+        // First, check if the list exists and get its details
+        $listData = Database::fetchOne(
+            "SELECT list_id, list_name, (SELECT COUNT(*) FROM tbl_tasks WHERE list_id = ?) as task_count FROM tbl_lists WHERE list_id = ?",
+            [$listId, $listId]
+        );
+        
+        if (!$listData) {
+            Session::setError('List not found.');
+            header('Location: ' . SITEURL . 'manage-list.php');
+            exit;
+        }
+        
+        // Check if list has tasks
+        if ($listData['task_count'] > 0) {
+            Session::setWarning("Cannot delete list '{$listData['list_name']}' because it contains {$listData['task_count']} task(s). Please delete all tasks first.");
+            header('Location: ' . SITEURL . 'manage-list.php');
+            exit;
+        }
+        
+        // Begin transaction for safe deletion
+        Database::beginTransaction();
+        
+        try {
+            // Delete the list from database
+            $deleteResult = Database::execute(
+                "DELETE FROM tbl_lists WHERE list_id = ?",
+                [$listId]
+            );
+            
+            if ($deleteResult) {
+                // Commit the transaction
+                Database::commit();
+                
+                // Log the deletion event
+                error_log("List deleted successfully: ID {$listId}, Name: {$listData['list_name']}");
+                
+                Session::setSuccess("List '{$listData['list_name']}' deleted successfully!");
+            } else {
+                throw new Exception('Failed to delete list from database');
+            }
+        } catch (Exception $e) {
+            // Rollback the transaction
+            Database::rollback();
+            throw $e;
+        }
+        
+    } catch (Exception $e) {
+        error_log('Error deleting list: ' . $e->getMessage());
+        Session::setError('An error occurred while deleting the list. Please try again.');
     }
 } else {
-    //Redirect to Manage List Page
-    header('location:' . SITEURL . 'manage-list.php');
+    Session::setError('Invalid list ID provided.');
 }
+
+// Redirect to Manage List Page
+header('Location: ' . SITEURL . 'manage-list.php');
+exit;

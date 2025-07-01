@@ -1,27 +1,33 @@
 <?php
-require_once('config/constants.php');
+
+declare(strict_types=1);
+
+// Include modern configuration and classes
+require_once 'config/constants.php';
+require_once 'config/Database.php';
+require_once 'config/Session.php';
+require_once 'config/Enums.php';
+
+// Start session
+Session::start();
 
 // Get list ID from URL
-$list_id = isset($_GET['list_id']) ? (int)$_GET['list_id'] : 0;
-$list_name = '';
+$listId = isset($_GET['list_id']) && is_numeric($_GET['list_id']) ? (int)$_GET['list_id'] : 0;
+$listName = '';
 
 // Get list name for display
-if ($list_id > 0) {
+if ($listId > 0) {
     try {
-        $conn_list = new mysqli(LOCALHOST, DB_USERNAME, DB_PASSWORD, DB_NAME);
-        if (!$conn_list->connect_error) {
-            $stmt = $conn_list->prepare("SELECT list_name FROM tbl_lists WHERE list_id = ?");
-            $stmt->bind_param("i", $list_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            if ($row = $result->fetch_assoc()) {
-                $list_name = htmlspecialchars($row['list_name']);
-            }
-            $stmt->close();
-            $conn_list->close();
+        $listData = Database::fetchOne(
+            "SELECT list_name FROM tbl_lists WHERE list_id = ?",
+            [$listId]
+        );
+        
+        if ($listData) {
+            $listName = htmlspecialchars($listData['list_name']);
         }
     } catch (Exception $e) {
-        error_log($e->getMessage());
+        error_log('Error fetching list: ' . $e->getMessage());
     }
 }
 ?>
@@ -128,27 +134,18 @@ if ($list_id > 0) {
                     <?php
                     // Display Lists From Database in Menu
                     try {
-                        $conn2 = new mysqli(LOCALHOST, DB_USERNAME, DB_PASSWORD, DB_NAME);
-                        if ($conn2->connect_error) {
-                            throw new Exception("Connection failed: " . $conn2->connect_error);
+                        $lists = Database::fetchAll("SELECT * FROM tbl_lists ORDER BY list_id ASC");
+                        
+                        foreach ($lists as $list) {
+                            $navListId = (int)$list['list_id'];
+                            $navListName = htmlspecialchars($list['list_name']);
+                            $activeClass = ($navListId === $listId) ? ' active' : '';
+                            echo '<li class="nav-item">';
+                            echo '<a class="nav-link' . $activeClass . '" href="' . SITEURL . 'list-task.php?list_id=' . $navListId . '">' . $navListName . '</a>';
+                            echo '</li>';
                         }
-
-                        $sql2 = "SELECT * FROM tbl_lists ORDER BY list_id ASC";
-                        $res2 = $conn2->query($sql2);
-
-                        if ($res2 && $res2->num_rows > 0) {
-                            while ($row2 = $res2->fetch_assoc()) {
-                                $nav_list_id = htmlspecialchars($row2['list_id']);
-                                $nav_list_name = htmlspecialchars($row2['list_name']);
-                                $active_class = ($nav_list_id == $list_id) ? ' active' : '';
-                                echo '<li class="nav-item">';
-                                echo '<a class="nav-link' . $active_class . '" href="' . SITEURL . 'list-task.php?list_id=' . $nav_list_id . '">' . $nav_list_name . '</a>';
-                                echo '</li>';
-                            }
-                        }
-                        $conn2->close();
                     } catch (Exception $e) {
-                        error_log($e->getMessage());
+                        error_log('Error fetching navigation lists: ' . $e->getMessage());
                     }
                     ?>
                 </ul>
@@ -169,10 +166,33 @@ if ($list_id > 0) {
     </nav>
 
     <div class="container">
-        <?php if ($list_name): ?>
+        <!-- Session Messages -->
+        <?php
+        $flashMessages = Session::getFlashMessages();
+        foreach ($flashMessages as $message):
+            $alertClass = match($message['type']) {
+                AlertType::SUCCESS => 'alert-success',
+                AlertType::ERROR => 'alert-danger',
+                AlertType::WARNING => 'alert-warning',
+                AlertType::INFO => 'alert-info'
+            };
+            $icon = match($message['type']) {
+                AlertType::SUCCESS => 'fas fa-check-circle',
+                AlertType::ERROR => 'fas fa-exclamation-circle',
+                AlertType::WARNING => 'fas fa-exclamation-triangle',
+                AlertType::INFO => 'fas fa-info-circle'
+            };
+        ?>
+            <div class="alert <?= $alertClass ?> alert-dismissible fade show" role="alert">
+                <i class="<?= $icon ?> me-2"></i><?= htmlspecialchars($message['message']) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endforeach; ?>
+
+        <?php if ($listName): ?>
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2 class="fw-semibold"><i class="fas fa-list-ul me-2"></i><?php echo $list_name; ?> Tasks</h2>
-                <a href="<?php echo SITEURL; ?>add-task.php" class="btn btn-primary btn-sm">
+                <h2 class="fw-semibold"><i class="fas fa-list-ul me-2"></i><?php echo $listName; ?> Tasks</h2>
+                <a href="<?php echo SITEURL; ?>add-task.php?list_id=<?= $listId ?>" class="btn btn-primary btn-sm">
                     <i class="fas fa-plus me-1"></i>Add Task
                 </a>
             </div>
@@ -200,99 +220,85 @@ if ($list_id > 0) {
                                 </thead>
                                 <tbody>
                                     <?php
-                                    if ($list_id > 0) {
+                                    if ($listId > 0) {
                                         try {
-                                            $conn = new mysqli(LOCALHOST, DB_USERNAME, DB_PASSWORD, DB_NAME);
-                                            if ($conn->connect_error) {
-                                                throw new Exception("Connection failed: " . $conn->connect_error);
-                                            }
+                                            $tasks = Database::fetchAll(
+                                                "SELECT * FROM tbl_tasks WHERE list_id = ? ORDER BY 
+                                                 CASE priority 
+                                                     WHEN 'High' THEN 1 
+                                                     WHEN 'Medium' THEN 2 
+                                                     WHEN 'Low' THEN 3 
+                                                 END, deadline ASC",
+                                                [$listId]
+                                            );
 
-                                            $stmt = $conn->prepare("SELECT * FROM tbl_tasks WHERE list_id = ? ORDER BY 
-                                                              CASE priority 
-                                                                  WHEN 'High' THEN 1 
-                                                                  WHEN 'Medium' THEN 2 
-                                                                  WHEN 'Low' THEN 3 
-                                                              END, deadline ASC");
-                                            $stmt->bind_param("i", $list_id);
-                                            $stmt->execute();
-                                            $res = $stmt->get_result();
-
-                                            if ($res && $res->num_rows > 0) {
+                                            if (!empty($tasks)) {
                                                 $sn = 1;
-                                                while ($row = $res->fetch_assoc()) {
-                                                    $task_id = htmlspecialchars($row['task_id']);
-                                                    $task_name = htmlspecialchars($row['task_name']);
-                                                    $task_description = htmlspecialchars($row['task_description']);
+                                                foreach ($tasks as $row) {
+                                                    $taskId = (int)$row['task_id'];
+                                                    $taskName = htmlspecialchars($row['task_name']);
+                                                    $taskDescription = htmlspecialchars($row['task_description'] ?? '');
                                                     $priority = htmlspecialchars($row['priority']);
                                                     $deadline = $row['deadline'];
 
-                                                    // Format deadline
-                                                    $formatted_deadline = '';
-                                                    $deadline_class = '';
-                                                    if ($deadline && $deadline !== '0000-00-00') {
-                                                        $deadline_date = new DateTime($deadline);
-                                                        $today = new DateTime();
-                                                        $diff = $today->diff($deadline_date);
+                                                    // Format deadline using modern approach
+                                                    [$formattedDeadline, $deadlineClass] = match (true) {
+                                                        empty($deadline) || $deadline === '0000-00-00' => ['<small>No deadline</small>', ''],
+                                                        default => (function() use ($deadline) {
+                                                            $deadlineDate = new DateTime($deadline);
+                                                            $today = new DateTime();
+                                                            $diff = $today->diff($deadlineDate);
 
-                                                        if ($deadline_date < $today) {
-                                                            $deadline_class = 'text-danger';
-                                                            $formatted_deadline = $deadline_date->format('M j, Y') . ' <small>(Overdue)</small>';
-                                                        } elseif ($diff->days <= 3) {
-                                                            $deadline_class = 'text-warning';
-                                                            $formatted_deadline = $deadline_date->format('M j, Y') . ' <small>(Due soon)</small>';
-                                                        } else {
-                                                            $formatted_deadline = $deadline_date->format('M j, Y');
-                                                        }
-                                                    } else {
-                                                        $formatted_deadline = '<small>No deadline</small>';
-                                                    }
+                                                            return match (true) {
+                                                                $deadlineDate < $today => [
+                                                                    $deadlineDate->format('M j, Y') . ' <small>(Overdue)</small>',
+                                                                    'text-danger'
+                                                                ],
+                                                                $diff->days <= 3 => [
+                                                                    $deadlineDate->format('M j, Y') . ' <small>(Due soon)</small>',
+                                                                    'text-warning'
+                                                                ],
+                                                                default => [$deadlineDate->format('M j, Y'), '']
+                                                            };
+                                                        })()
+                                                    };
 
-                                                    // Priority styling
-                                                    $priority_class = '';
-                                                    $priority_icon = '';
-                                                    switch (strtolower($priority)) {
-                                                        case 'high':
-                                                            $priority_class = 'bg-danger';
-                                                            $priority_icon = 'fas fa-exclamation-circle';
-                                                            break;
-                                                        case 'medium':
-                                                            $priority_class = 'bg-warning';
-                                                            $priority_icon = 'fas fa-minus-circle';
-                                                            break;
-                                                        case 'low':
-                                                            $priority_class = 'bg-success';
-                                                            $priority_icon = 'fas fa-check-circle';
-                                                            break;
-                                                    }
+                                                    // Priority styling using match expression
+                                                    [$priorityClass, $priorityIcon] = match (strtolower($priority)) {
+                                                        'high' => ['bg-danger', 'fas fa-exclamation-circle'],
+                                                        'medium' => ['bg-warning', 'fas fa-minus-circle'],
+                                                        'low' => ['bg-success', 'fas fa-check-circle'],
+                                                        default => ['bg-secondary', 'fas fa-circle']
+                                                    };
                                     ?>
 
-                                                    <tr class="priority-<?php echo strtolower($priority); ?>">
-                                                        <td><?php echo $sn++; ?></td>
+                                                    <tr class="priority-<?= strtolower($priority) ?>">
+                                                        <td><?= $sn++ ?></td>
                                                         <td>
                                                             <div>
-                                                                <strong><?php echo $task_name; ?></strong>
-                                                                <?php if ($task_description): ?>
-                                                                    <br><small><?php echo $task_description; ?></small>
+                                                                <strong><?= $taskName ?></strong>
+                                                                <?php if ($taskDescription): ?>
+                                                                    <br><small><?= $taskDescription ?></small>
                                                                 <?php endif; ?>
                                                             </div>
                                                         </td>
                                                         <td>
-                                                            <span class="badge <?php echo $priority_class; ?>">
-                                                                <i class="<?php echo $priority_icon; ?> me-1"></i><?php echo $priority; ?>
+                                                            <span class="badge <?= $priorityClass ?>">
+                                                                <i class="<?= $priorityIcon ?> me-1"></i><?= $priority ?>
                                                             </span>
                                                         </td>
-                                                        <td class="<?php echo $deadline_class; ?>">
-                                                            <?php echo $formatted_deadline; ?>
+                                                        <td class="<?= $deadlineClass ?>">
+                                                            <?= $formattedDeadline ?>
                                                         </td>
                                                         <td>
                                                             <div class="btn-group" role="group">
-                                                                <a href="<?php echo SITEURL; ?>update-task.php?task_id=<?php echo $task_id; ?>"
+                                                                <a href="<?= SITEURL ?>update-task.php?task_id=<?= $taskId ?>"
                                                                     class="btn btn-outline-primary btn-sm" title="Edit Task">
                                                                     <i class="fas fa-edit"></i>
                                                                 </a>
                                                                 <a href="#"
                                                                     class="btn btn-outline-danger btn-sm" title="Delete Task"
-                                                                    onclick="confirmDelete(<?php echo $task_id; ?>)">
+                                                                    onclick="confirmDelete(<?= $taskId ?>)">
                                                                     <i class="fas fa-trash"></i>
                                                                 </a>
                                                             </div>
@@ -305,15 +311,13 @@ if ($list_id > 0) {
                                                 <tr>
                                                     <td colspan="5" class="text-center py-4">
                                                         <i class="fas fa-tasks fa-3x mb-3"></i>
-                                                        <p>No tasks in this list yet. <a href="<?php echo SITEURL; ?>add-task.php">Add your first task</a>!</p>
+                                                        <p>No tasks in this list yet. <a href="<?= SITEURL ?>add-task.php?list_id=<?= $listId ?>">Add your first task</a>!</p>
                                                     </td>
                                                 </tr>
                                     <?php
                                             }
-                                            $stmt->close();
-                                            $conn->close();
                                         } catch (Exception $e) {
-                                            error_log($e->getMessage());
+                                            error_log('Error loading tasks: ' . $e->getMessage());
                                             echo '<tr><td colspan="5" class="text-center text-danger">Error loading tasks. Please try again.</td></tr>';
                                         }
                                     }
@@ -343,7 +347,7 @@ if ($list_id > 0) {
                 confirmButtonText: 'Yes, delete it!'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location.href = '<?php echo SITEURL; ?>delete-task.php?task_id=' + taskId;
+                    window.location.href = '<?= SITEURL ?>delete-task.php?task_id=' + taskId;
                 }
             });
         }

@@ -1,45 +1,93 @@
 <?php
-include('config/constants.php');
 
-//Check whether the form is submitted or not
-if (isset($_POST['submit'])) {
-    //Get the values from form and save it in variables
-    $list_name = $_POST['list_name'];
-    $list_description = $_POST['list_description'];
+declare(strict_types=1);
 
-    //Connect Database
-    $conn = mysqli_connect(LOCALHOST, DB_USERNAME, DB_PASSWORD) or die(mysqli_error());
+// Include modern configuration and classes
+require_once 'config/constants.php';
+require_once 'config/Database.php';
+require_once 'config/Session.php';
+require_once 'config/Enums.php';
 
-    //Select Database
-    $db_select = mysqli_select_db($conn, DB_NAME);
-
-    //Create SQL Query to Insert Data into Database
-    $sql = "INSERT INTO tbl_lists SET 
-            list_name = '$list_name',
-            list_description = '$list_description'
-        ";
-
-    //Execute Query
-    $res = mysqli_query($conn, $sql);
-
-    //Check whether the data inserted or not
-    if ($res == true) {
-        //Data Inserted Successfully
-        //Create a SESSION Variable to Display message
-        $_SESSION['add'] = "List Added Successfully";
-
-        //Redirect to Manage List Page
-        header('location:' . SITEURL . 'manage-list.php');
-        exit();
+/**
+ * Validate and sanitize list input data
+ */
+function validateListInput(array $data): array
+{
+    $errors = [];
+    $cleaned = [];
+    
+    // Validate list name
+    $listName = trim($data['list_name'] ?? '');
+    if (empty($listName)) {
+        $errors[] = 'List name is required';
+    } elseif (strlen($listName) > 100) {
+        $errors[] = 'List name must be less than 100 characters';
+    } elseif (preg_match('/[<>"\'\/]/', $listName)) {
+        $errors[] = 'List name contains invalid characters';
     } else {
-        //Failed to insert data
-        //Create Session to save message
-        $_SESSION['add_fail'] = "Failed to Add List";
-
-        //Redirect to Same Page
-        header('location:' . SITEURL . 'add-list.php');
-        exit();
+        $cleaned['list_name'] = htmlspecialchars($listName, ENT_QUOTES, 'UTF-8');
     }
+    
+    // Validate list description (optional)
+    $listDescription = trim($data['list_description'] ?? '');
+    if (strlen($listDescription) > 500) {
+        $errors[] = 'List description must be less than 500 characters';
+    } else {
+        $cleaned['list_description'] = htmlspecialchars($listDescription, ENT_QUOTES, 'UTF-8');
+    }
+    
+    return ['errors' => $errors, 'data' => $cleaned];
+}
+
+// Start session
+Session::start();
+
+// Check whether the form is submitted
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
+    try {
+        // Verify CSRF token
+        if (!Session::verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+            throw new InvalidArgumentException('Invalid security token. Please try again.');
+        }
+        
+        // Validate input
+        $validation = validateListInput($_POST);
+        
+        if (!empty($validation['errors'])) {
+            Session::setError(implode('. ', $validation['errors']));
+        } else {
+            $data = $validation['data'];
+            
+            // Check if list name already exists
+            $existingList = Database::fetchOne(
+                "SELECT list_id FROM tbl_lists WHERE list_name = ?",
+                [$data['list_name']]
+            );
+            
+            if ($existingList) {
+                Session::setError('A list with this name already exists. Please choose a different name.');
+            } else {
+                // Insert new list
+                $sql = "INSERT INTO tbl_lists (list_name, list_description) VALUES (?, ?)";
+                $params = [$data['list_name'], $data['list_description']];
+                
+                if (Database::execute($sql, $params)) {
+                    Session::setSuccess('List added successfully!');
+                    header('Location: ' . SITEURL . 'manage-list.php');
+                    exit;
+                } else {
+                    Session::setError('Failed to add list. Please try again.');
+                }
+            }
+        }
+    } catch (Exception $e) {
+        error_log('Error adding list: ' . $e->getMessage());
+        Session::setError('An error occurred while adding the list. Please try again.');
+    }
+    
+    // Redirect to prevent form resubmission
+    header('Location: ' . SITEURL . 'add-list.php');
+    exit;
 }
 ?>
 
@@ -170,32 +218,64 @@ if (isset($_POST['submit'])) {
                     <div class="card-body">
 
                         <?php
-                        //Check whether the session is created or not
-                        if (isset($_SESSION['add_fail'])) {
-                            //display session message
-                            echo '<div class="alert alert-danger alert-dismissible fade show" role="alert">';
-                            echo $_SESSION['add_fail'];
-                            echo '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
-                            echo '</div>';
-                            //Remove the message after displaying once
-                            unset($_SESSION['add_fail']);
-                        }
+                            // Display flash messages using modern Session class
+                            if (Session::hasFlashMessages()) {
+                                $messages = Session::getFlashMessages();
+                                foreach ($messages as $message) {
+                                    $alertClass = $message['type']->getAlertClass();
+                                    $iconClass = $message['type']->getIconClass();
+                                    $messageText = htmlspecialchars($message['message'], ENT_QUOTES, 'UTF-8');
+                                    
+                                    echo "<div class='alert {$alertClass} alert-dismissible fade show' role='alert'>";
+                                    echo "<i class='{$iconClass} me-2'></i>{$messageText}";
+                                    echo '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+                                    echo '</div>';
+                                }
+                            }
                         ?>
 
-                        <form method="POST">
+                        <form method="POST" novalidate>
+                            <!-- CSRF Token -->
+                            <input type="hidden" name="csrf_token" value="<?php echo Session::getCsrfToken(); ?>">
+                            
                             <div class="mb-3">
-                                <label for="list_name" class="form-label">List Name:</label>
-                                <input type="text" id="list_name" name="list_name" class="form-control" placeholder="Type list name here" required="required" />
+                                <label for="list_name" class="form-label">
+                                    <i class="fas fa-list me-1"></i>List Name <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" 
+                                       id="list_name" 
+                                       name="list_name" 
+                                       class="form-control" 
+                                       placeholder="Enter a descriptive name for your list" 
+                                       required 
+                                       maxlength="100"
+                                       value="<?php echo htmlspecialchars($_POST['list_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" />
+                                <div class="form-text">
+                                    <small><i class="fas fa-info-circle me-1"></i>Choose a unique name that describes your list's purpose</small>
+                                </div>
                             </div>
 
-                            <div class="mb-3">
-                                <label for="list_description" class="form-label">List Description</label>
-                                <textarea id="list_description" name="list_description" class="form-control" rows="3" placeholder="Type List Description Here"></textarea>
+                            <div class="mb-4">
+                                <label for="list_description" class="form-label">
+                                    <i class="fas fa-align-left me-1"></i>List Description
+                                </label>
+                                <textarea id="list_description" 
+                                          name="list_description" 
+                                          class="form-control" 
+                                          rows="4" 
+                                          maxlength="500"
+                                          placeholder="Provide additional details about this list (optional)"><?php echo htmlspecialchars($_POST['list_description'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea>
+                                <div class="form-text">
+                                    <small><i class="fas fa-info-circle me-1"></i>Optional: Add more context about what this list will contain</small>
+                                </div>
                             </div>
 
                             <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <a href="<?php echo SITEURL; ?>manage-list.php" class="btn btn-secondary me-md-2">
+                                    <i class="fas fa-times me-1"></i>Cancel
+                                </a>
                                 <button type="submit" class="btn btn-primary" name="submit">
-                                    <i class="fas fa-save me-1"></i>Add List
+                                    <i class="fas fa-plus me-1"></i>Create List
                                 </button>
                             </div>
                         </form>
@@ -206,6 +286,64 @@ if (isset($_POST['submit'])) {
     </div>
 
     <script src="js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Form validation and enhancement
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form');
+            const listNameInput = document.getElementById('list_name');
+            const listDescInput = document.getElementById('list_description');
+            
+            // Real-time validation for list name
+            listNameInput.addEventListener('input', function() {
+                const value = this.value.trim();
+                const invalidChars = /[<>"'\/]/;
+                
+                if (value.length > 100) {
+                    this.setCustomValidity('List name must be less than 100 characters');
+                } else if (invalidChars.test(value)) {
+                    this.setCustomValidity('List name contains invalid characters');
+                } else if (value.length === 0) {
+                    this.setCustomValidity('List name is required');
+                } else {
+                    this.setCustomValidity('');
+                }
+            });
+            
+            // Character counter for description
+            listDescInput.addEventListener('input', function() {
+                const remaining = 500 - this.value.length;
+                let counterEl = document.getElementById('desc-counter');
+                
+                if (!counterEl) {
+                    counterEl = document.createElement('small');
+                    counterEl.id = 'desc-counter';
+                    counterEl.className = 'form-text';
+                    this.parentNode.appendChild(counterEl);
+                }
+                
+                counterEl.textContent = `${remaining} characters remaining`;
+                counterEl.className = remaining < 50 ? 'form-text text-warning' : 'form-text';
+                
+                if (this.value.length > 500) {
+                    this.setCustomValidity('Description must be less than 500 characters');
+                } else {
+                    this.setCustomValidity('');
+                }
+            });
+            
+            // Form submission handling
+            form.addEventListener('submit', function(e) {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                
+                if (this.checkValidity()) {
+                    // Show loading state
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creating...';
+                }
+            });
+        });
+    </script>
 
 
 </body>

@@ -1,5 +1,16 @@
 <?php
-require_once('config/constants.php');
+
+declare(strict_types=1);
+
+// Include modern configuration and classes
+require_once 'config/constants.php';
+require_once 'config/Database.php';
+require_once 'config/Session.php';
+require_once 'config/Enums.php';
+
+// Start session to handle flash messages
+Session::start();
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -103,28 +114,23 @@ require_once('config/constants.php');
 
 
                     <?php
-                    // Display Lists From Database in Menu
                     try {
-                        $conn2 = new mysqli(LOCALHOST, DB_USERNAME, DB_PASSWORD, DB_NAME);
-                        if ($conn2->connect_error) {
-                            throw new Exception("Connection failed: " . $conn2->connect_error);
-                        }
-
-                        $sql2 = "SELECT * FROM tbl_lists ORDER BY list_id ASC";
-                        $res2 = $conn2->query($sql2);
-
-                        if ($res2 && $res2->num_rows > 0) {
-                            while ($row2 = $res2->fetch_assoc()) {
-                                $list_id = htmlspecialchars($row2['list_id']);
-                                $list_name = htmlspecialchars($row2['list_name']);
-                                echo '<li class="nav-item">';
-                                echo '<a class="nav-link" href="' . SITEURL . 'list-task.php?list_id=' . $list_id . '">' . $list_name . '</a>';
-                                echo '</li>';
+                        // Query to get all lists using modern Database class
+                        $lists = Database::fetchAll(
+                            "SELECT list_id, list_name FROM tbl_lists ORDER BY list_id ASC"
+                        );
+                        
+                        if (!empty($lists)) {
+                            foreach ($lists as $list) {
+                                $listId = (int) $list['list_id'];
+                                $listName = htmlspecialchars($list['list_name'], ENT_QUOTES, 'UTF-8');
+                                echo "<li class='nav-item'>";
+                                echo "<a class='nav-link' href='" . SITEURL . "list-task.php?list_id={$listId}'>{$listName}</a>";
+                                echo "</li>";
                             }
                         }
-                        $conn2->close();
                     } catch (Exception $e) {
-                        error_log($e->getMessage());
+                        error_log("Error fetching lists: " . $e->getMessage());
                     }
                     ?>
                 </ul>
@@ -146,21 +152,18 @@ require_once('config/constants.php');
 
     <div class="container">
         <?php
-        // Display session messages with Bootstrap alerts
-        $messages = [
-            'add' => ['class' => 'alert-success', 'icon' => 'fas fa-check-circle'],
-            'delete' => ['class' => 'alert-success', 'icon' => 'fas fa-check-circle'],
-            'update' => ['class' => 'alert-success', 'icon' => 'fas fa-check-circle'],
-            'delete_fail' => ['class' => 'alert-danger', 'icon' => 'fas fa-exclamation-circle']
-        ];
-
-        foreach ($messages as $key => $config) {
-            if (isset($_SESSION[$key])) {
-                echo '<div class="alert ' . $config['class'] . ' alert-dismissible fade show" role="alert">';
-                echo '<i class="' . $config['icon'] . ' me-2"></i>' . htmlspecialchars($_SESSION[$key]);
+        // Display flash messages using modern Session class
+        if (Session::hasFlashMessages()) {
+            $messages = Session::getFlashMessages();
+            foreach ($messages as $message) {
+                $alertClass = $message['type']->getAlertClass();
+                $iconClass = $message['type']->getIconClass();
+                $messageText = htmlspecialchars($message['message'], ENT_QUOTES, 'UTF-8');
+                
+                echo "<div class='alert {$alertClass} alert-dismissible fade show' role='alert'>";
+                echo "<i class='{$iconClass} me-2'></i>{$messageText}";
                 echo '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
                 echo '</div>';
-                unset($_SESSION[$key]);
             }
         }
         ?>
@@ -192,55 +195,57 @@ require_once('config/constants.php');
                                 <tbody>
                                     <?php
                                     try {
-                                        $conn = new mysqli(LOCALHOST, DB_USERNAME, DB_PASSWORD, DB_NAME);
-                                        if ($conn->connect_error) {
-                                            throw new Exception("Connection failed: " . $conn->connect_error);
-                                        }
-
-                                        $sql = "SELECT * FROM tbl_tasks ORDER BY 
-                                           CASE priority 
-                                               WHEN 'High' THEN 1 
-                                               WHEN 'Medium' THEN 2 
-                                               WHEN 'Low' THEN 3 
-                                           END, deadline ASC";
-
-                                        $res = $conn->query($sql);
-
-                                        if ($res && $res->num_rows > 0) {
+                                        // Query to get all tasks using modern Database class
+                                        $sql = "
+                                            SELECT task_id, task_name, task_description, priority, deadline 
+                                            FROM tbl_tasks 
+                                            ORDER BY 
+                                                CASE priority 
+                                                    WHEN 'High' THEN 1 
+                                                    WHEN 'Medium' THEN 2 
+                                                    WHEN 'Low' THEN 3 
+                                                END, deadline ASC
+                                        ";
+                                        
+                                        $tasks = Database::fetchAll($sql);
+                                        
+                                        if (!empty($tasks)) {
                                             $sn = 1;
-                                            while ($row = $res->fetch_assoc()) {
-                                                $task_id = htmlspecialchars($row['task_id']);
-                                                $task_name = htmlspecialchars($row['task_name']);
-                                                $priority = htmlspecialchars($row['priority']);
-                                                $deadline = htmlspecialchars($row['deadline']);
-
-                                                $priority_class = 'priority-' . strtolower($priority);
-                                                $deadline_formatted = date('M d, Y', strtotime($deadline));
+                                            foreach ($tasks as $task) {
+                                                $taskId = (int) $task['task_id'];
+                                                $taskName = htmlspecialchars($task['task_name'], ENT_QUOTES, 'UTF-8');
+                                                $taskDescription = htmlspecialchars($task['task_description'] ?? '', ENT_QUOTES, 'UTF-8');
+                                                $deadline = htmlspecialchars($task['deadline'], ENT_QUOTES, 'UTF-8');
+                                                $deadlineFormatted = date('M d, Y', strtotime($deadline));
+                                                
+                                                // Use Priority enum for better type safety
+                                                try {
+                                                    $priority = Priority::fromString($task['priority']);
+                                                    $priorityBadge = "<span class='badge {$priority->getBadgeClass()}'>{$priority->value}</span>";
+                                                } catch (InvalidArgumentException) {
+                                                    $priorityBadge = "<span class='badge bg-secondary'>{$task['priority']}</span>";
+                                                }
                                     ?>
 
                                                 <tr>
                                                     <td><?php echo $sn++; ?></td>
                                                     <td>
-                                                        <strong><?php echo $task_name; ?></strong>
-                                                        <?php if (!empty($row['task_description'])): ?>
-                                                            <br><small><?php echo htmlspecialchars($row['task_description']); ?></small>
+                                                        <strong><?php echo $taskName; ?></strong>
+                                                        <?php if (!empty($taskDescription)): ?>
+                                                            <br><small><?php echo $taskDescription; ?></small>
                                                         <?php endif; ?>
                                                     </td>
-                                                    <td>
-                                                        <span class="badge bg-<?php echo $priority === 'High' ? 'danger' : ($priority === 'Medium' ? 'warning' : 'success'); ?>">
-                                                            <?php echo $priority; ?>
-                                                        </span>
-                                                    </td>
-                                                    <td><?php echo $deadline_formatted; ?></td>
+                                                    <td><?php echo $priorityBadge; ?></td>
+                                                    <td><?php echo $deadlineFormatted; ?></td>
                                                     <td>
                                                         <div class="btn-group" role="group">
-                                                            <a href="<?php echo SITEURL; ?>update-task.php?task_id=<?php echo $task_id; ?>"
+                                                            <a href="<?php echo SITEURL; ?>update-task.php?task_id=<?php echo $taskId; ?>"
                                                                 class="btn btn-outline-primary btn-sm" title="Edit Task">
                                                                 <i class="fas fa-edit"></i>
                                                             </a>
                                                             <a href="#"
                                                                 class="btn btn-outline-danger btn-sm" title="Delete Task"
-                                                                onclick="confirmDelete(<?php echo $task_id; ?>)">
+                                                                onclick="confirmDelete(<?php echo $taskId; ?>)">
                                                                 <i class="fas fa-trash"></i>
                                                             </a>
                                                         </div>
@@ -258,9 +263,8 @@ require_once('config/constants.php');
                                             </tr>
                                     <?php
                                         }
-                                        $conn->close();
                                     } catch (Exception $e) {
-                                        error_log($e->getMessage());
+                                        error_log("Error fetching tasks: " . $e->getMessage());
                                         echo '<tr><td colspan="5" class="text-center text-danger">Error loading tasks. Please try again.</td></tr>';
                                     }
                                     ?>

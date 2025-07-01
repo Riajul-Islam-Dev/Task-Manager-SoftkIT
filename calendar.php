@@ -1,59 +1,60 @@
 <?php
-require_once('config/constants.php');
 
-// Create connection
-$conn = new mysqli(LOCALHOST, DB_USERNAME, DB_PASSWORD, DB_NAME);
+declare(strict_types=1);
 
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+// Include modern configuration and classes
+require_once 'config/constants.php';
+require_once 'config/Database.php';
+require_once 'config/Session.php';
+require_once 'config/Enums.php';
+
+// Start session
+Session::start();
 
 // Handle AJAX requests for calendar events
 if (isset($_GET['action'])) {
     header('Content-Type: application/json');
 
-    if ($_GET['action'] == 'get_events') {
+    if ($_GET['action'] === 'get_events') {
         try {
             $start = $_GET['start'] ?? '';
             $end = $_GET['end'] ?? '';
 
-            // Parse and format dates properly
-            $start_date = date('Y-m-d', strtotime($start));
-            $end_date = date('Y-m-d', strtotime($end));
+            // Validate and parse dates
+            if (empty($start) || empty($end)) {
+                throw new InvalidArgumentException('Start and end dates are required');
+            }
+
+            $startDate = date('Y-m-d', strtotime($start));
+            $endDate = date('Y-m-d', strtotime($end));
+
+            if (!$startDate || !$endDate) {
+                throw new InvalidArgumentException('Invalid date format');
+            }
 
             $sql = "SELECT ce.*, t.task_name, t.task_description, t.priority, l.list_name 
                     FROM tbl_calendar_events ce 
-                    LEFT JOIN tbl_tasks t ON ce.task_id = t.task_id 
-                    LEFT JOIN tbl_lists l ON t.list_id = l.list_id 
+                    LEFT JOIN tbl_tasks t ON ce.task_id = t.task_id
+                LEFT JOIN tbl_lists l ON t.list_id = l.list_id 
                     WHERE ce.event_date BETWEEN ? AND ?";
 
-            $stmt = $conn->prepare($sql);
-            if (!$stmt) {
-                throw new Exception('Prepare failed: ' . $conn->error);
-            }
-            
-            $stmt->bind_param('ss', $start_date, $end_date);
-            if (!$stmt->execute()) {
-                throw new Exception('Execute failed: ' . $stmt->error);
-            }
-            
-            $result = $stmt->get_result();
-
+            $events_data = Database::fetchAll($sql, [$startDate, $endDate]);
             $events = [];
-            while ($row = $result->fetch_assoc()) {
-                $color = '#007bff'; // Default blue
-                if ($row['priority'] == 'High') $color = '#dc3545'; // Red
-                elseif ($row['priority'] == 'Medium') $color = '#ffc107'; // Yellow
-                elseif ($row['priority'] == 'Low') $color = '#28a745'; // Green
 
-                // Handle null event_time
-                $event_time = $row['event_time'] ?: '00:00:00';
-                
+            foreach ($events_data as $row) {
+                $color = match ($row['priority'] ?? null) {
+                    'High' => '#dc3545',
+                    'Medium' => '#ffc107',
+                    'Low' => '#28a745',
+                    default => '#007bff'
+                };
+
+                $eventTime = $row['event_time'] ?? '00:00:00';
+
                 $events[] = [
                     'id' => $row['event_id'],
                     'title' => $row['task_name'] ?: $row['event_title'],
-                    'start' => $row['event_date'] . 'T' . $event_time,
+                    'start' => $row['event_date'] . 'T' . $eventTime,
                     'backgroundColor' => $color,
                     'borderColor' => $color,
                     'extendedProps' => [
@@ -68,8 +69,8 @@ if (isset($_GET['action'])) {
 
             echo json_encode($events);
             exit;
-            
         } catch (Exception $e) {
+            error_log('Calendar events error: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
             exit;
@@ -77,28 +78,92 @@ if (isset($_GET['action'])) {
     }
 }
 
+/**
+ * Validates calendar event input data
+ */
+function validateEventInput(array $data): array
+{
+    $errors = [];
+
+    // Validate event title
+    if (empty(trim($data['event_title'] ?? ''))) {
+        $errors[] = 'Event title is required.';
+    } elseif (strlen(trim($data['event_title'])) > 255) {
+        $errors[] = 'Event title must be less than 255 characters.';
+    }
+
+    // Validate event date
+    if (empty($data['event_date'] ?? '')) {
+        $errors[] = 'Event date is required.';
+    } elseif (!DateTime::createFromFormat('Y-m-d', $data['event_date'])) {
+        $errors[] = 'Invalid date format.';
+    }
+
+    // Validate event time (optional)
+    if (!empty($data['event_time']) && !DateTime::createFromFormat('H:i', $data['event_time'])) {
+        $errors[] = 'Invalid time format.';
+    }
+
+    // Validate event type
+    $validTypes = ['event', 'task', 'meeting', 'reminder'];
+    if (!empty($data['event_type']) && !in_array($data['event_type'], $validTypes, true)) {
+        $errors[] = 'Invalid event type.';
+    }
+
+    // Validate task_id (optional)
+    if (!empty($data['task_id']) && !is_numeric($data['task_id'])) {
+        $errors[] = 'Invalid task ID.';
+    }
+
+    return $errors;
+}
+
 // Handle form submissions
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
+        // Verify CSRF token
+        if (!Session::verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+            Session::setError('Invalid security token. Please try again.');
+            header('Location: calendar.php');
+            exit;
+        }
+
         if (isset($_POST['add_event'])) {
-            $event_title = trim($_POST['event_title']);
-            $event_description = trim($_POST['event_description']);
-            $event_date = $_POST['event_date'];
-            $event_time = $_POST['event_time'];
-            $event_type = $_POST['event_type'];
-            $task_id = !empty($_POST['task_id']) ? $_POST['task_id'] : null;
+            $validationErrors = validateEventInput($_POST);
 
-            if (empty($event_title) || empty($event_date)) {
-                $_SESSION['error'] = 'Event title and date are required.';
+            if (!empty($validationErrors)) {
+                Session::setError(implode(' ', $validationErrors));
             } else {
-                $sql = "INSERT INTO tbl_calendar_events (event_title, event_description, event_date, event_time, event_type, task_id) VALUES (?, ?, ?, ?, ?, ?)";
-                $stmt = $conn->prepare($sql);
-                $stmt->bind_param('sssssi', $event_title, $event_description, $event_date, $event_time, $event_type, $task_id);
+                $eventTitle = trim($_POST['event_title']);
+                $eventDescription = trim($_POST['event_description'] ?? '');
+                $eventDate = $_POST['event_date'];
+                $eventTime = !empty($_POST['event_time']) ? $_POST['event_time'] : null;
+                $eventType = $_POST['event_type'] ?? 'event';
+                $taskId = !empty($_POST['task_id']) ? (int)$_POST['task_id'] : null;
 
-                if ($stmt->execute()) {
-                    $_SESSION['success'] = 'Calendar event added successfully!';
+                // If task_id is provided, verify it exists
+                if ($taskId) {
+                    $taskExists = Database::fetchOne(
+                        "SELECT task_id FROM tbl_tasks WHERE task_id = ?",
+                        [$taskId]
+                    );
+
+                    if (!$taskExists) {
+                        Session::setError('Selected task does not exist.');
+                        header('Location: calendar.php');
+                        exit;
+                    }
+                }
+
+                $result = Database::execute(
+                    "INSERT INTO tbl_calendar_events (event_title, event_description, event_date, event_time, event_type, task_id) VALUES (?, ?, ?, ?, ?, ?)",
+                    [$eventTitle, $eventDescription, $eventDate, $eventTime, $eventType, $taskId]
+                );
+
+                if ($result) {
+                    Session::setSuccess('Calendar event added successfully!');
                 } else {
-                    $_SESSION['error'] = 'Failed to add calendar event.';
+                    Session::setError('Failed to add calendar event.');
                 }
             }
 
@@ -107,35 +172,61 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         if (isset($_POST['delete_event'])) {
-            $event_id = $_POST['event_id'];
+            $eventId = (int)($_POST['event_id'] ?? 0);
 
-            $sql = "DELETE FROM tbl_calendar_events WHERE event_id = ?";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param('i', $event_id);
-
-            if ($stmt->execute()) {
-                $_SESSION['success'] = 'Event deleted successfully!';
+            if ($eventId <= 0) {
+                Session::setError('Invalid event ID.');
             } else {
-                $_SESSION['error'] = 'Failed to delete event.';
+                // Check if event exists
+                $eventExists = Database::fetchOne(
+                    "SELECT event_id FROM tbl_calendar_events WHERE event_id = ?",
+                    [$eventId]
+                );
+
+                if (!$eventExists) {
+                    Session::setError('Event not found.');
+                } else {
+                    $result = Database::execute(
+                        "DELETE FROM tbl_calendar_events WHERE event_id = ?",
+                        [$eventId]
+                    );
+
+                    if ($result) {
+                        Session::setSuccess('Event deleted successfully!');
+                    } else {
+                        Session::setError('Failed to delete event.');
+                    }
+                }
             }
 
             header('Location: calendar.php');
             exit;
         }
     } catch (Exception $e) {
-        $_SESSION['error'] = 'An error occurred: ' . $e->getMessage();
+        error_log('Calendar form error: ' . $e->getMessage());
+        Session::setError('An error occurred. Please try again.');
         header('Location: calendar.php');
         exit;
     }
 }
 
 // Get all tasks for dropdown
-$tasks_sql = "SELECT t.task_id, t.task_name, l.list_name FROM tbl_tasks t LEFT JOIN tbl_lists l ON t.list_id = l.list_id ORDER BY t.task_name";
-$tasks_result = $conn->query($tasks_sql);
+try {
+    $tasks = Database::fetchAll(
+        "SELECT t.task_id, t.task_name, l.list_name FROM tbl_tasks t LEFT JOIN tbl_lists l ON t.list_id = l.list_id ORDER BY t.task_name"
+    );
+} catch (Exception $e) {
+    error_log('Error fetching tasks: ' . $e->getMessage());
+    $tasks = [];
+}
 
 // Get all lists for navigation
-$lists_sql = "SELECT * FROM tbl_lists ORDER BY list_id ASC";
-$lists_result = $conn->query($lists_sql);
+try {
+    $lists = Database::fetchAll("SELECT * FROM tbl_lists ORDER BY list_id ASC");
+} catch (Exception $e) {
+    error_log('Error fetching lists: ' . $e->getMessage());
+    $lists = [];
+}
 ?>
 
 <!DOCTYPE html>
@@ -366,15 +457,15 @@ $lists_result = $conn->query($lists_sql);
                     </li>
                 </ul>
                 <ul class="navbar-nav">
-                    <?php if ($lists_result && $lists_result->num_rows > 0): ?>
+                    <?php if (!empty($lists)): ?>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-filter me-1"></i>Filter by List
                             </a>
                             <ul class="dropdown-menu">
-                                <?php while ($list = $lists_result->fetch_assoc()): ?>
+                                <?php foreach ($lists as $list): ?>
                                     <li><a class="dropdown-item" href="list-task.php?list_id=<?= $list['list_id'] ?>"><?= htmlspecialchars($list['list_name']) ?></a></li>
-                                <?php endwhile; ?>
+                                <?php endforeach; ?>
                             </ul>
                         </li>
                     <?php endif; ?>
@@ -398,21 +489,27 @@ $lists_result = $conn->query($lists_sql);
         </div>
 
         <!-- Session Messages -->
-        <?php if (isset($_SESSION['success'])): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="fas fa-check-circle me-2"></i><?= $_SESSION['success'] ?>
+        <?php
+        $flashMessages = Session::getFlashMessages();
+        foreach ($flashMessages as $message):
+            $alertClass = match ($message['type']) {
+                AlertType::SUCCESS => 'alert-success',
+                AlertType::ERROR => 'alert-danger',
+                AlertType::WARNING => 'alert-warning',
+                AlertType::INFO => 'alert-info'
+            };
+            $icon = match ($message['type']) {
+                AlertType::SUCCESS => 'fas fa-check-circle',
+                AlertType::ERROR => 'fas fa-exclamation-circle',
+                AlertType::WARNING => 'fas fa-exclamation-triangle',
+                AlertType::INFO => 'fas fa-info-circle'
+            };
+        ?>
+            <div class="alert <?= $alertClass ?> alert-dismissible fade show" role="alert">
+                <i class="<?= $icon ?> me-2"></i><?= htmlspecialchars($message['message']) ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
-            <?php unset($_SESSION['success']); ?>
-        <?php endif; ?>
-
-        <?php if (isset($_SESSION['error'])): ?>
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="fas fa-exclamation-circle me-2"></i><?= $_SESSION['error'] ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            <?php unset($_SESSION['error']); ?>
-        <?php endif; ?>
+        <?php endforeach; ?>
 
         <!-- Calendar -->
         <div class="calendar-container">
@@ -428,15 +525,18 @@ $lists_result = $conn->query($lists_sql);
                     <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Add Calendar Event</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form method="POST">
+                <form method="POST" id="addEventForm">
+                    <input type="hidden" name="csrf_token" value="<?= Session::getCsrfToken() ?>">
                     <div class="modal-body">
                         <div class="mb-3">
                             <label for="event_title" class="form-label">Event Title *</label>
-                            <input type="text" class="form-control" id="event_title" name="event_title" required>
+                            <input type="text" class="form-control" id="event_title" name="event_title" required maxlength="255">
+                            <div class="form-text">Maximum 255 characters</div>
                         </div>
                         <div class="mb-3">
                             <label for="event_description" class="form-label">Description</label>
-                            <textarea class="form-control" id="event_description" name="event_description" rows="3"></textarea>
+                            <textarea class="form-control" id="event_description" name="event_description" rows="3" maxlength="1000"></textarea>
+                            <div class="form-text">Maximum 1000 characters</div>
                         </div>
                         <div class="row">
                             <div class="col-md-6">
@@ -465,16 +565,14 @@ $lists_result = $conn->query($lists_sql);
                             <label for="task_id" class="form-label">Link to Task (Optional)</label>
                             <select class="form-select" id="task_id" name="task_id">
                                 <option value="">-- Select Task --</option>
-                                <?php if ($tasks_result && $tasks_result->num_rows > 0): ?>
-                                    <?php while ($task = $tasks_result->fetch_assoc()): ?>
-                                        <option value="<?= $task['task_id'] ?>">
-                                            <?= htmlspecialchars($task['task_name']) ?>
-                                            <?php if ($task['list_name']): ?>
-                                                (<?= htmlspecialchars($task['list_name']) ?>)
-                                            <?php endif; ?>
-                                        </option>
-                                    <?php endwhile; ?>
-                                <?php endif; ?>
+                                <?php foreach ($tasks as $task): ?>
+                                    <option value="<?= $task['task_id'] ?>">
+                                        <?= htmlspecialchars($task['task_name']) ?>
+                                        <?php if ($task['list_name']): ?>
+                                            (<?= htmlspecialchars($task['list_name']) ?>)
+                                        <?php endif; ?>
+                                    </option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                     </div>
@@ -604,6 +702,7 @@ $lists_result = $conn->query($lists_sql);
                 var form = document.createElement('form');
                 form.method = 'POST';
                 form.innerHTML = `
+                    <input type="hidden" name="csrf_token" value="<?= Session::getCsrfToken() ?>">
                     <input type="hidden" name="delete_event" value="1">
                     <input type="hidden" name="event_id" value="${eventId}">
                 `;

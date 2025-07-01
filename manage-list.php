@@ -1,5 +1,16 @@
 <?php
-require_once('config/constants.php');
+
+declare(strict_types=1);
+
+// Include modern configuration and classes
+require_once 'config/constants.php';
+require_once 'config/Database.php';
+require_once 'config/Session.php';
+require_once 'config/Enums.php';
+
+// Start session to handle flash messages
+Session::start();
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -88,29 +99,22 @@ require_once('config/constants.php');
                     </li>
 
                     <?php
-                    // Display Lists From Database in Menu
-                    try {
-                        $conn2 = new mysqli(LOCALHOST, DB_USERNAME, DB_PASSWORD, DB_NAME);
-                        if ($conn2->connect_error) {
-                            throw new Exception("Connection failed: " . $conn2->connect_error);
-                        }
-
-                        $sql2 = "SELECT * FROM tbl_lists ORDER BY list_id ASC";
-                        $res2 = $conn2->query($sql2);
-
-                        if ($res2 && $res2->num_rows > 0) {
-                            while ($row2 = $res2->fetch_assoc()) {
-                                $list_id = htmlspecialchars($row2['list_id']);
-                                $list_name = htmlspecialchars($row2['list_name']);
-                                echo '<li class="nav-item">';
-                                echo '<a class="nav-link" href="' . SITEURL . 'list-task.php?list_id=' . $list_id . '">' . $list_name . '</a>';
-                                echo '</li>';
+                        try {
+                            // Query to get all lists using modern Database class
+                            $lists = Database::fetchAll(
+                                "SELECT list_id, list_name FROM tbl_lists ORDER BY list_name ASC"
+                            );
+                            
+                            foreach ($lists as $list) {
+                                $listId = (int) $list['list_id'];
+                                $listName = htmlspecialchars($list['list_name'], ENT_QUOTES, 'UTF-8');
+                                echo "<li class='nav-item'>";
+                                echo "<a class='nav-link' href='" . SITEURL . "list-task.php?list_id={$listId}'>{$listName}</a>";
+                                echo "</li>";
                             }
+                        } catch (Exception $e) {
+                            error_log("Error fetching lists for navigation: " . $e->getMessage());
                         }
-                        $conn2->close();
-                    } catch (Exception $e) {
-                        error_log($e->getMessage());
-                    }
                     ?>
                 </ul>
                 <ul class="navbar-nav">
@@ -131,23 +135,20 @@ require_once('config/constants.php');
 
     <div class="container">
         <?php
-        // Display session messages with Bootstrap alerts
-        $messages = [
-            'add' => ['class' => 'alert-success', 'icon' => 'fas fa-check-circle'],
-            'delete' => ['class' => 'alert-success', 'icon' => 'fas fa-check-circle'],
-            'update' => ['class' => 'alert-success', 'icon' => 'fas fa-check-circle'],
-            'delete_fail' => ['class' => 'alert-danger', 'icon' => 'fas fa-exclamation-circle']
-        ];
-
-        foreach ($messages as $key => $config) {
-            if (isset($_SESSION[$key])) {
-                echo '<div class="alert ' . $config['class'] . ' alert-dismissible fade show" role="alert">';
-                echo '<i class="' . $config['icon'] . ' me-2"></i>' . htmlspecialchars($_SESSION[$key]);
-                echo '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
-                echo '</div>';
-                unset($_SESSION[$key]);
+            // Display flash messages using modern Session class
+            if (Session::hasFlashMessages()) {
+                $messages = Session::getFlashMessages();
+                foreach ($messages as $message) {
+                    $alertClass = $message['type']->getAlertClass();
+                    $iconClass = $message['type']->getIconClass();
+                    $messageText = htmlspecialchars($message['message'], ENT_QUOTES, 'UTF-8');
+                    
+                    echo "<div class='alert {$alertClass} alert-dismissible fade show' role='alert'>";
+                    echo "<i class='{$iconClass} me-2'></i>{$messageText}";
+                    echo '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+                    echo '</div>';
+                }
             }
-        }
         ?>
 
         <div class="row">
@@ -174,75 +175,97 @@ require_once('config/constants.php');
                                 </thead>
                                 <tbody>
                                     <?php
-                                    try {
-                                        $conn = new mysqli(LOCALHOST, DB_USERNAME, DB_PASSWORD, DB_NAME);
-                                        if ($conn->connect_error) {
-                                            throw new Exception("Connection failed: " . $conn->connect_error);
-                                        }
+                                        try {
+                                            // Get lists with task count using modern Database class
+                                            $sql = "
+                                                SELECT l.list_id, l.list_name, COUNT(t.task_id) as task_count 
+                                                FROM tbl_lists l 
+                                                LEFT JOIN tbl_tasks t ON l.list_id = t.list_id 
+                                                GROUP BY l.list_id, l.list_name 
+                                                ORDER BY l.list_name ASC
+                                            ";
+                                            
+                                            $lists = Database::fetchAll($sql);
+                                            
+                                            if (!empty($lists)) {
+                                                $sn = 1;
+                                                foreach ($lists as $list) {
+                                                    $listId = (int) $list['list_id'];
+                                                    $listName = htmlspecialchars($list['list_name'], ENT_QUOTES, 'UTF-8');
+                                                    $taskCount = (int) $list['task_count'];
 
-                                        // Get lists with task count
-                                        $sql = "SELECT l.*, COUNT(t.task_id) as task_count 
-                                           FROM tbl_lists l 
-                                           LEFT JOIN tbl_tasks t ON l.list_id = t.list_id 
-                                           GROUP BY l.list_id 
-                                           ORDER BY l.list_id ASC";
-
-                                        $res = $conn->query($sql);
-
-                                        if ($res && $res->num_rows > 0) {
-                                            $sn = 1;
-                                            while ($row = $res->fetch_assoc()) {
-                                                $list_id = htmlspecialchars($row['list_id']);
-                                                $list_name = htmlspecialchars($row['list_name']);
-                                                $task_count = (int)$row['task_count'];
+                                                    
+                                                    $badgeClass = match (true) {
+                                                        $taskCount === 0 => 'bg-secondary',
+                                                        $taskCount <= 5 => 'bg-primary',
+                                                        $taskCount <= 10 => 'bg-warning',
+                                                        default => 'bg-danger'
+                                                    };
+                                                    
+                                                    $taskText = $taskCount === 1 ? 'task' : 'tasks';
                                     ?>
+                                                    <tr>
+                                                        <td><?php echo $sn++; ?></td>
+                                                        <td>
+                                                            <div class="d-flex flex-column">
+                                                                <strong class="mb-1"><?php echo $listName; ?></strong>
 
+                                                                <small>
+                                                                    <a href="<?php echo SITEURL; ?>list-task.php?list_id=<?php echo $listId; ?>" 
+                                                                       class="text-decoration-none text-primary">
+                                                                        <i class="fas fa-eye me-1"></i>View tasks in this list
+                                                                    </a>
+                                                                </small>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <span class="badge <?php echo $badgeClass; ?> fs-6">
+                                                                <i class="fas fa-tasks me-1"></i><?php echo $taskCount; ?> <?php echo $taskText; ?>
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="btn-group" role="group" aria-label="List actions">
+                                                                <a href="<?php echo SITEURL; ?>update-list.php?list_id=<?php echo $listId; ?>"
+                                                                   class="btn btn-outline-primary btn-sm" 
+                                                                   title="Edit List"
+                                                                   data-bs-toggle="tooltip">
+                                                                    <i class="fas fa-edit"></i>
+                                                                </a>
+                                                                <button type="button"
+                                                                        class="btn btn-outline-danger btn-sm" 
+                                                                        title="Delete List"
+                                                                        data-bs-toggle="tooltip"
+                                                                        onclick="confirmDeleteList(<?php echo $listId; ?>, '<?php echo addslashes($listName); ?>', <?php echo $taskCount; ?>)">
+                                                                    <i class="fas fa-trash"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                    <?php
+                                                }
+                                            } else {
+                                    ?>
                                                 <tr>
-                                                    <td><?php echo $sn++; ?></td>
-                                                    <td>
-                                                        <strong><?php echo $list_name; ?></strong>
-                                                        <br><small>
-                                                            <a href="<?php echo SITEURL; ?>list-task.php?list_id=<?php echo $list_id; ?>" class="text-decoration-none">
-                                                                View tasks in this list
-                                                            </a>
-                                                        </small>
-                                                    </td>
-                                                    <td>
-                                                        <span class="badge bg-<?php echo $task_count > 0 ? 'primary' : 'secondary'; ?>">
-                                                            <?php echo $task_count; ?> task<?php echo $task_count !== 1 ? 's' : ''; ?>
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <div class="btn-group" role="group">
-                                                            <a href="<?php echo SITEURL; ?>update-list.php?list_id=<?php echo $list_id; ?>"
-                                                                class="btn btn-outline-primary btn-sm" title="Edit List">
-                                                                <i class="fas fa-edit"></i>
-                                                            </a>
-                                                            <a href="#"
-                                                                class="btn btn-outline-danger btn-sm" title="Delete List"
-                                                                onclick="confirmDeleteList(<?php echo $list_id; ?>)">
-                                                                <i class="fas fa-trash"></i>
+                                                    <td colspan="4" class="text-center py-5">
+                                                        <div class="d-flex flex-column align-items-center">
+                                                            <i class="fas fa-folder-open fa-4x mb-3"></i>
+                    <h5 class="mb-2">No lists created yet</h5>
+                    <p class="mb-3">Get started by creating your first task list!</p>
+                                                            <a href="<?php echo SITEURL; ?>add-list.php" class="btn btn-primary">
+                                                                <i class="fas fa-plus me-2"></i>Create your first list
                                                             </a>
                                                         </div>
                                                     </td>
                                                 </tr>
-                                            <?php
-                                            }
-                                        } else {
-                                            ?>
-                                            <tr>
-                                                <td colspan="4" class="text-center py-4">
-                                                    <i class="fas fa-folder-open fa-3x mb-3"></i>
-                                                    <p>No lists created yet. <a href="<?php echo SITEURL; ?>add-list.php">Create your first list</a>!</p>
-                                                </td>
-                                            </tr>
                                     <?php
+                                            }
+                                        } catch (Exception $e) {
+                                            error_log("Error loading lists: " . $e->getMessage());
+                                            echo '<tr><td colspan="4" class="text-center text-danger py-4">';
+                                            echo '<i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>';
+                                            echo 'Error loading lists. Please refresh the page or try again later.';
+                                            echo '</td></tr>';
                                         }
-                                        $conn->close();
-                                    } catch (Exception $e) {
-                                        error_log($e->getMessage());
-                                        echo '<tr><td colspan="4" class="text-center text-danger">Error loading lists. Please try again.</td></tr>';
-                                    }
                                     ?>
 
 
@@ -260,18 +283,51 @@ require_once('config/constants.php');
     <script src="js/sweetalert2.all.min.js"></script>
 
     <script>
-        function confirmDeleteList(listId) {
+        // Initialize Bootstrap tooltips
+        document.addEventListener('DOMContentLoaded', function() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+        
+        function confirmDeleteList(listId, listName, taskCount) {
+            const taskText = taskCount === 1 ? 'task' : 'tasks';
+            const warningText = taskCount > 0 
+                ? `This list contains ${taskCount} ${taskText} that will also be deleted.` 
+                : 'This action cannot be undone.';
+            
             Swal.fire({
-                title: 'Are you sure?',
-                text: 'This will delete the list and all tasks in it. You won\'t be able to revert this!',
+                title: `Delete "${listName}"?`,
+                html: `<p class="mb-2">Are you sure you want to delete this list?</p><p class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>${warningText}</p>`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#dc3545',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Yes, delete it!'
+                confirmButtonText: '<i class="fas fa-trash me-1"></i>Yes, delete it!',
+                cancelButtonText: '<i class="fas fa-times me-1"></i>Cancel',
+                focusCancel: true,
+                customClass: {
+                    confirmButton: 'btn btn-danger',
+                    cancelButton: 'btn btn-secondary'
+                },
+                buttonsStyling: false
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location.href = '<?php echo SITEURL; ?>delete-list.php?list_id=' + listId;
+                    // Show loading state
+                    Swal.fire({
+                        title: 'Deleting...',
+                        text: 'Please wait while we delete the list.',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Redirect to delete script
+                    window.location.href = `<?php echo SITEURL; ?>delete-list.php?list_id=${listId}`;
                 }
             });
         }

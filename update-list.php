@@ -1,42 +1,130 @@
 <?php
 
-include('config/constants.php');
+declare(strict_types=1);
 
+// Include modern configuration and classes
+require_once 'config/constants.php';
+require_once 'config/Database.php';
+require_once 'config/Session.php';
+require_once 'config/Enums.php';
 
-
-
-//Get the Current Values of Selected List
-if (isset($_GET['list_id'])) {
-    //Get the List ID value
-    $list_id = $_GET['list_id'];
-
-    //Connect to Database
-    $conn = mysqli_connect(LOCALHOST, DB_USERNAME, DB_PASSWORD) or die(mysqli_error());
-
-    //SElect DAtabase
-    $db_select = mysqli_select_db($conn, DB_NAME) or die(mysqli_error());
-
-    //Query to Get the Values from Database
-    $sql = "SELECT * FROM tbl_lists WHERE list_id=$list_id";
-
-    //Execute Query
-    $res = mysqli_query($conn, $sql);
-
-    //CHekc whether the query executed successfully or not
-    if ($res == true) {
-        //Get the Value from Database
-        $row = mysqli_fetch_assoc($res); //Value is in array
-
-        //printing $row array
-        //print_r($row);
-
-        //Create Individual Variable to save the data
-        $list_name = $row['list_name'];
-        $list_description = $row['list_description'];
+/**
+ * Validate and sanitize list input data
+ */
+function validateListInput(array $data): array
+{
+    $errors = [];
+    $cleaned = [];
+    
+    // Validate list name
+    $listName = trim($data['list_name'] ?? '');
+    if (empty($listName)) {
+        $errors[] = 'List name is required';
+    } elseif (strlen($listName) > 100) {
+        $errors[] = 'List name must be less than 100 characters';
+    } elseif (preg_match('/[<>"\'\/]/', $listName)) {
+        $errors[] = 'List name contains invalid characters';
     } else {
-        //Go Back to Manage List Page
-        header('location:' . SITEURL . 'manage-list.php');
+        $cleaned['list_name'] = htmlspecialchars($listName, ENT_QUOTES, 'UTF-8');
     }
+    
+    // Validate list description (optional)
+    $listDescription = trim($data['list_description'] ?? '');
+    if (strlen($listDescription) > 500) {
+        $errors[] = 'List description must be less than 500 characters';
+    } else {
+        $cleaned['list_description'] = htmlspecialchars($listDescription, ENT_QUOTES, 'UTF-8');
+    }
+    
+    return ['errors' => $errors, 'data' => $cleaned];
+}
+
+// Start session
+Session::start();
+
+// Initialize variables
+$listId = 0;
+$listName = '';
+$listDescription = '';
+$listData = null;
+
+// Get the Current Values of Selected List
+if (isset($_GET['list_id']) && is_numeric($_GET['list_id'])) {
+    $listId = (int) $_GET['list_id'];
+    
+    try {
+        // Query to get the list data from database
+        $listData = Database::fetchOne(
+            "SELECT list_id, list_name, list_description FROM tbl_lists WHERE list_id = ?",
+            [$listId]
+        );
+        
+        if ($listData) {
+            $listName = $listData['list_name'];
+            $listDescription = $listData['list_description'] ?? '';
+        } else {
+            Session::setError('List not found.');
+            header('Location: ' . SITEURL . 'manage-list.php');
+            exit;
+        }
+    } catch (Exception $e) {
+        error_log('Error fetching list data: ' . $e->getMessage());
+        Session::setError('Error loading list data.');
+        header('Location: ' . SITEURL . 'manage-list.php');
+        exit;
+    }
+} else {
+    Session::setError('Invalid list ID.');
+    header('Location: ' . SITEURL . 'manage-list.php');
+    exit;
+}
+
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
+    try {
+        // Verify CSRF token
+        if (!Session::verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+            throw new InvalidArgumentException('Invalid security token. Please try again.');
+        }
+        
+        // Validate input
+        $validation = validateListInput($_POST);
+        
+        if (!empty($validation['errors'])) {
+            Session::setError(implode('. ', $validation['errors']));
+        } else {
+            $data = $validation['data'];
+            
+            // Check if list name already exists (excluding current list)
+            $existingList = Database::fetchOne(
+                "SELECT list_id FROM tbl_lists WHERE list_name = ? AND list_id != ?",
+                [$data['list_name'], $listId]
+            );
+            
+            if ($existingList) {
+                Session::setError('A list with this name already exists. Please choose a different name.');
+            } else {
+                // Update the list
+                $sql = "UPDATE tbl_lists SET list_name = ?, list_description = ? WHERE list_id = ?";
+                $params = [$data['list_name'], $data['list_description'], $listId];
+                
+                if (Database::execute($sql, $params)) {
+                    Session::setSuccess('List updated successfully!');
+                    header('Location: ' . SITEURL . 'manage-list.php');
+                    exit;
+                } else {
+                    Session::setError('Failed to update list. Please try again.');
+                }
+            }
+        }
+    } catch (Exception $e) {
+        error_log('Error updating list: ' . $e->getMessage());
+        Session::setError('An error occurred while updating the list. Please try again.');
+    }
+    
+    // Redirect to prevent form resubmission
+    header('Location: ' . SITEURL . 'update-list.php?list_id=' . $listId);
+    exit;
 }
 
 ?>
@@ -193,30 +281,66 @@ if (isset($_GET['list_id'])) {
                     </div>
                     <div class="card-body">
                         <?php
-                        //Check whether the session is set or not
-                        if (isset($_SESSION['update_fail'])) {
-                            echo '<div class="alert alert-danger alert-dismissible fade show" role="alert">';
-                            echo $_SESSION['update_fail'];
-                            echo '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
-                            echo '</div>';
-                            unset($_SESSION['update_fail']);
-                        }
+                            // Display flash messages using modern Session class
+                            if (Session::hasFlashMessages()) {
+                                $messages = Session::getFlashMessages();
+                                foreach ($messages as $message) {
+                                    $alertClass = $message['type']->getAlertClass();
+                                    $iconClass = $message['type']->getIconClass();
+                                    $messageText = htmlspecialchars($message['message'], ENT_QUOTES, 'UTF-8');
+                                    
+                                    echo "<div class='alert {$alertClass} alert-dismissible fade show' role='alert'>";
+                                    echo "<i class='{$iconClass} me-2'></i>{$messageText}";
+                                    echo '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+                                    echo '</div>';
+                                }
+                            }
                         ?>
 
-                        <form method="POST" action="">
+                        <form method="POST" novalidate>
+                            <!-- CSRF Token -->
+                            <input type="hidden" name="csrf_token" value="<?php echo Session::getCsrfToken(); ?>">
+                            
                             <div class="mb-3">
-                                <label for="list_name" class="form-label">List Name</label>
-                                <input type="text" name="list_name" id="list_name" class="form-control" value="<?php echo htmlspecialchars($list_name); ?>" required />
+                                <label for="list_name" class="form-label">
+                                    <i class="fas fa-list me-1"></i>List Name <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" 
+                                       name="list_name" 
+                                       id="list_name" 
+                                       class="form-control" 
+                                       value="<?php echo htmlspecialchars($listName, ENT_QUOTES, 'UTF-8'); ?>" 
+                                       required 
+                                       maxlength="100"
+                                       placeholder="Enter a descriptive name for your list" />
+                                <div class="form-text">
+                                    <small><i class="fas fa-info-circle me-1"></i>Choose a unique name that describes your list's purpose</small>
+                                </div>
                             </div>
 
-                            <div class="mb-3">
-                                <label for="list_description" class="form-label">List Description</label>
-                                <textarea name="list_description" id="list_description" class="form-control" rows="3"><?php echo htmlspecialchars($list_description); ?></textarea>
+                            <div class="mb-4">
+                                <label for="list_description" class="form-label">
+                                    <i class="fas fa-align-left me-1"></i>List Description
+                                </label>
+                                <textarea name="list_description" 
+                                          id="list_description" 
+                                          class="form-control" 
+                                          rows="4" 
+                                          maxlength="500"
+                                          placeholder="Provide additional details about this list (optional)"><?php echo htmlspecialchars($listDescription, ENT_QUOTES, 'UTF-8'); ?></textarea>
+                                <div class="form-text">
+                                    <small><i class="fas fa-info-circle me-1"></i>Optional: Add more context about what this list will contain</small>
+                                </div>
                             </div>
 
-                            <div class="d-flex justify-content-end">
+
+
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <a href="<?php echo SITEURL; ?>manage-list.php" class="btn btn-secondary me-md-2">
+                                    <i class="fas fa-times me-1"></i>Cancel
+                                </a>
                                 <button type="submit" name="submit" class="btn btn-primary">
-                                    <i class="fas fa-save me-2"></i>Save Changes
+                                    <i class="fas fa-save me-1"></i>Update List
                                 </button>
                             </div>
                         </form>
@@ -227,51 +351,64 @@ if (isset($_GET['list_id'])) {
     </div>
 
     <script src="js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Form validation and enhancement
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form');
+            const listNameInput = document.getElementById('list_name');
+            const listDescInput = document.getElementById('list_description');
+            
+            // Real-time validation for list name
+            listNameInput.addEventListener('input', function() {
+                const value = this.value.trim();
+                const invalidChars = /[<>"'\/]/;
+                
+                if (value.length > 100) {
+                    this.setCustomValidity('List name must be less than 100 characters');
+                } else if (invalidChars.test(value)) {
+                    this.setCustomValidity('List name contains invalid characters');
+                } else if (value.length === 0) {
+                    this.setCustomValidity('List name is required');
+                } else {
+                    this.setCustomValidity('');
+                }
+            });
+            
+            // Character counter for description
+            listDescInput.addEventListener('input', function() {
+                const remaining = 500 - this.value.length;
+                let counterEl = document.getElementById('desc-counter');
+                
+                if (!counterEl) {
+                    counterEl = document.createElement('small');
+                    counterEl.id = 'desc-counter';
+                    counterEl.className = 'form-text';
+                    this.parentNode.appendChild(counterEl);
+                }
+                
+                counterEl.textContent = `${remaining} characters remaining`;
+                counterEl.className = remaining < 50 ? 'form-text text-warning' : 'form-text';
+                
+                if (this.value.length > 500) {
+                    this.setCustomValidity('Description must be less than 500 characters');
+                } else {
+                    this.setCustomValidity('');
+                }
+            });
+            
+            // Form submission handling
+            form.addEventListener('submit', function(e) {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                
+                if (this.checkValidity()) {
+                    // Show loading state
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>
-
-
-<?php
-
-//Check whether the Update is Clicked or Not
-if (isset($_POST['submit'])) {
-    //echo "Button Clicked";
-
-    //Get the Updated Values from our Form
-    $list_name = $_POST['list_name'];
-    $list_description = $_POST['list_description'];
-
-    //Connect Database
-    $conn2 = mysqli_connect(LOCALHOST, DB_USERNAME, DB_PASSWORD) or die(mysqli_error());
-
-    //SElect the Database
-    $db_select2 = mysqli_select_db($conn2, DB_NAME);
-
-    //QUERY to Update List
-    $sql2 = "UPDATE tbl_lists SET 
-            list_name = '$list_name',
-            list_description = '$list_description' 
-            WHERE list_id=$list_id
-        ";
-
-    //Execute the Query
-    $res2 = mysqli_query($conn2, $sql2);
-
-    //Check whether the query executed successfully or not
-    if ($res2 == true) {
-        //Update Successful
-        //SEt the Message
-        $_SESSION['update'] = "List Updated Successfully";
-
-        //Redirect to Manage List PAge
-        header('location:' . SITEURL . 'manage-list.php');
-    } else {
-        //FAiled to Update
-        //SEt Session Message
-        $_SESSION['update_fail'] = "Failed to Update List";
-        //Redirect to the Update List PAge
-        header('location:' . SITEURL . 'update-list.php?list_id=' . $list_id);
-    }
-}
-?>
