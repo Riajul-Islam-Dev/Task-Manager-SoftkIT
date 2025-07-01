@@ -14,8 +14,8 @@ if ($_SERVER['HTTP_HOST'] == 'localhost' || $_SERVER['HTTP_HOST'] == 'tm.softkit
     define("SITEURL", "http://localhost/tm.softkit.io/");
 } else {
     // Live server
-    define('DB_USERNAME', 'softkiti_task_manager_user');
+    define('DB_USERNAME', 'softkitx_task_manager_user');
     define('DB_PASSWORD', 'Gv8#zPq9Xr!mL2');
-    define('DB_NAME', 'softkiti_task_manager');
+    define('DB_NAME', 'softkitx_task_manager');
     define("SITEURL", "https://tm.softkit.io/");
 }
