@@ -14,45 +14,66 @@ if (isset($_GET['action'])) {
     header('Content-Type: application/json');
 
     if ($_GET['action'] == 'get_events') {
-        $start = $_GET['start'] ?? '';
-        $end = $_GET['end'] ?? '';
+        try {
+            $start = $_GET['start'] ?? '';
+            $end = $_GET['end'] ?? '';
 
-        $sql = "SELECT ce.*, t.task_name, t.task_description, t.priority, l.list_name 
-                FROM tbl_calendar_events ce 
-                LEFT JOIN tbl_tasks t ON ce.task_id = t.task_id 
-                LEFT JOIN tbl_lists l ON t.list_id = l.list_id 
-                WHERE ce.event_date BETWEEN ? AND ?";
+            // Parse and format dates properly
+            $start_date = date('Y-m-d', strtotime($start));
+            $end_date = date('Y-m-d', strtotime($end));
 
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param('ss', $start, $end);
-        $stmt->execute();
-        $result = $stmt->get_result();
+            $sql = "SELECT ce.*, t.task_name, t.task_description, t.priority, l.list_name 
+                    FROM tbl_calendar_events ce 
+                    LEFT JOIN tbl_tasks t ON ce.task_id = t.task_id 
+                    LEFT JOIN tbl_lists l ON t.list_id = l.list_id 
+                    WHERE ce.event_date BETWEEN ? AND ?";
 
-        $events = [];
-        while ($row = $result->fetch_assoc()) {
-            $color = '#007bff'; // Default blue
-            if ($row['priority'] == 'High') $color = '#dc3545'; // Red
-            elseif ($row['priority'] == 'Medium') $color = '#ffc107'; // Yellow
-            elseif ($row['priority'] == 'Low') $color = '#28a745'; // Green
+            $stmt = $conn->prepare($sql);
+            if (!$stmt) {
+                throw new Exception('Prepare failed: ' . $conn->error);
+            }
+            
+            $stmt->bind_param('ss', $start_date, $end_date);
+            if (!$stmt->execute()) {
+                throw new Exception('Execute failed: ' . $stmt->error);
+            }
+            
+            $result = $stmt->get_result();
 
-            $events[] = [
-                'id' => $row['event_id'],
-                'title' => $row['task_name'] ?: $row['event_title'],
-                'start' => $row['event_date'] . 'T' . $row['event_time'],
-                'backgroundColor' => $color,
-                'borderColor' => $color,
-                'extendedProps' => [
-                    'description' => $row['task_description'] ?: $row['event_description'],
-                    'priority' => $row['priority'],
-                    'list_name' => $row['list_name'],
-                    'task_id' => $row['task_id'],
-                    'event_type' => $row['event_type']
-                ]
-            ];
+            $events = [];
+            while ($row = $result->fetch_assoc()) {
+                $color = '#007bff'; // Default blue
+                if ($row['priority'] == 'High') $color = '#dc3545'; // Red
+                elseif ($row['priority'] == 'Medium') $color = '#ffc107'; // Yellow
+                elseif ($row['priority'] == 'Low') $color = '#28a745'; // Green
+
+                // Handle null event_time
+                $event_time = $row['event_time'] ?: '00:00:00';
+                
+                $events[] = [
+                    'id' => $row['event_id'],
+                    'title' => $row['task_name'] ?: $row['event_title'],
+                    'start' => $row['event_date'] . 'T' . $event_time,
+                    'backgroundColor' => $color,
+                    'borderColor' => $color,
+                    'extendedProps' => [
+                        'description' => $row['task_description'] ?: $row['event_description'],
+                        'priority' => $row['priority'],
+                        'list_name' => $row['list_name'],
+                        'task_id' => $row['task_id'],
+                        'event_type' => $row['event_type']
+                    ]
+                ];
+            }
+
+            echo json_encode($events);
+            exit;
+            
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
+            exit;
         }
-
-        echo json_encode($events);
-        exit;
     }
 }
 
