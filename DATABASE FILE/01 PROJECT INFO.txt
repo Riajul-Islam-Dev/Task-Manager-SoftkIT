@@ -1,6 +1,17 @@
 **Database Name: task_manager**
 
+**Required PHP Version: 8.3+**
 
-**Recommended PHP Version 5.6.3, 7.4.12**
+**Project Features:**
+- Modern PHP 8.3 syntax with readonly classes
+- Backed enums (PHP 8.1+)
+- Match expressions
+- Constructor property promotion
+- Strict typing throughout
+- Named parameters
+- Union types
 
-Do not change the project’s folder name without updating the 'SITEURL'
+**Important Notes:**
+- This project requires PHP 8.3 or higher due to modern language features
+- Do not change the project's folder name without updating the 'SITEURL' in constants.php
+- Ensure your server supports PHP 8.3+ before deployment
