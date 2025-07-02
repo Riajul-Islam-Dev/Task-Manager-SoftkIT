@@ -250,7 +250,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
                                        required 
                                        maxlength="100"
                                        value="<?php echo htmlspecialchars($_POST['list_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" />
-                                <div class="form-text">
+                                <div class="text-info">
                                     <small><i class="fas fa-info-circle me-1"></i>Choose a unique name that describes your list's purpose</small>
                                 </div>
                             </div>
@@ -265,7 +265,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
                                           rows="4" 
                                           maxlength="500"
                                           placeholder="Provide additional details about this list (optional)"><?php echo htmlspecialchars($_POST['list_description'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea>
-                                <div class="form-text">
+                                <div class="text-info">
                                     <small><i class="fas fa-info-circle me-1"></i>Optional: Add more context about what this list will contain</small>
                                 </div>
                             </div>
@@ -318,12 +318,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
                 if (!counterEl) {
                     counterEl = document.createElement('small');
                     counterEl.id = 'desc-counter';
-                    counterEl.className = 'form-text';
+                    counterEl.className = 'text-info';
                     this.parentNode.appendChild(counterEl);
                 }
                 
                 counterEl.textContent = `${remaining} characters remaining`;
-                counterEl.className = remaining < 50 ? 'form-text text-warning' : 'form-text';
+                counterEl.className = remaining < 50 ? 'text-info text-warning' : 'text-info';
                 
                 if (this.value.length > 500) {
                     this.setCustomValidity('Description must be less than 500 characters');

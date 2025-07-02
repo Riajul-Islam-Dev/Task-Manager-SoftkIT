@@ -531,12 +531,12 @@ try {
                         <div class="mb-3">
                             <label for="event_title" class="form-label">Event Title *</label>
                             <input type="text" class="form-control" id="event_title" name="event_title" required maxlength="255">
-                            <div class="form-text">Maximum 255 characters</div>
+                            <div class="text-info">Maximum 255 characters</div>
                         </div>
                         <div class="mb-3">
                             <label for="event_description" class="form-label">Description</label>
                             <textarea class="form-control" id="event_description" name="event_description" rows="3" maxlength="1000"></textarea>
-                            <div class="form-text">Maximum 1000 characters</div>
+                            <div class="text-info">Maximum 1000 characters</div>
                         </div>
                         <div class="row">
                             <div class="col-md-6">
