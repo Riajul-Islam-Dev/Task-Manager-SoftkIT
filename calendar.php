@@ -49,12 +49,26 @@ if (isset($_GET['action'])) {
                     default => '#007bff'
                 };
 
-                $eventTime = $row['event_time'] ?? '00:00:00';
+                $startTime = $row['start_time'] ?? '00:00:00';
+                $endTime = $row['end_time'] ?? null;
+                $endDate = $row['end_date'] ?? null;
+
+                $eventStart = $row['event_date'] . 'T' . $startTime;
+                
+                // Handle multi-day events
+                if ($endDate && $endDate !== $row['event_date']) {
+                    // Multi-day event: end on the end_date
+                    $eventEnd = $endTime ? $endDate . 'T' . $endTime : $endDate;
+                } else {
+                    // Single-day event: end on same day if end_time is provided
+                    $eventEnd = $endTime ? $row['event_date'] . 'T' . $endTime : null;
+                }
 
                 $events[] = [
                     'id' => $row['event_id'],
                     'title' => $row['task_name'] ?: $row['event_title'],
-                    'start' => $row['event_date'] . 'T' . $eventTime,
+                    'start' => $eventStart,
+                    'end' => $eventEnd,
                     'backgroundColor' => $color,
                     'borderColor' => $color,
                     'extendedProps' => [
@@ -62,7 +76,10 @@ if (isset($_GET['action'])) {
                         'priority' => $row['priority'],
                         'list_name' => $row['list_name'],
                         'task_id' => $row['task_id'],
-                        'event_type' => $row['event_type']
+                        'event_type' => $row['event_type'],
+                        'start_time' => $startTime,
+                        'end_time' => $endTime,
+                        'end_date' => $endDate
                     ]
                 ];
             }
@@ -85,7 +102,7 @@ if (isset($_GET['action'])) {
                 throw new InvalidArgumentException('Invalid event ID');
             }
 
-            $sql = "SELECT * FROM tbl_calendar_events WHERE event_id = ?";
+            $sql = "SELECT event_id, event_title, event_description, event_date, end_date, start_time, end_time, event_type, task_id FROM tbl_calendar_events WHERE event_id = ?";
             $event = Database::fetchOne($sql, [$eventId]);
 
             if (!$event) {
@@ -109,38 +126,115 @@ if (isset($_GET['action'])) {
 function validateEventInput(array $data): array
 {
     $errors = [];
+    $cleaned = [];
 
     // Validate event title
-    if (empty(trim($data['event_title'] ?? ''))) {
+    $eventTitle = trim($data['event_title'] ?? '');
+    if (empty($eventTitle)) {
         $errors[] = 'Event title is required.';
-    } elseif (strlen(trim($data['event_title'])) > 255) {
-        $errors[] = 'Event title must be less than 255 characters.';
+    } elseif (strlen($eventTitle) > 200) {
+        $errors[] = 'Event title must be 200 characters or less.';
+    } else {
+        $cleaned['event_title'] = $eventTitle;
     }
 
-    // Validate event date
-    if (empty($data['event_date'] ?? '')) {
-        $errors[] = 'Event date is required.';
-    } elseif (!DateTime::createFromFormat('Y-m-d', $data['event_date'])) {
-        $errors[] = 'Invalid date format.';
+    // Validate event description (optional)
+    $eventDescription = trim($data['event_description'] ?? '');
+    if (strlen($eventDescription) > 1000) {
+        $errors[] = 'Event description must be 1000 characters or less.';
+    } else {
+        $cleaned['event_description'] = $eventDescription;
     }
 
-    // Validate event time (optional)
-    if (!empty($data['event_time']) && !DateTime::createFromFormat('H:i', $data['event_time'])) {
-        $errors[] = 'Invalid time format.';
+    // Validate event start date
+    $eventDate = trim($data['event_date'] ?? '');
+    if (empty($eventDate)) {
+        $errors[] = 'Event start date is required.';
+    } else {
+        $dateObj = DateTime::createFromFormat('Y-m-d', $eventDate);
+        if (!$dateObj || $dateObj->format('Y-m-d') !== $eventDate) {
+            $errors[] = 'Please enter a valid start date.';
+        } else {
+            $cleaned['event_date'] = $eventDate;
+        }
+    }
+
+    // Validate event end date (optional for multi-day events)
+    $endDate = trim($data['end_date'] ?? '');
+    if (!empty($endDate)) {
+        $endDateObj = DateTime::createFromFormat('Y-m-d', $endDate);
+        if (!$endDateObj || $endDateObj->format('Y-m-d') !== $endDate) {
+            $errors[] = 'Please enter a valid end date.';
+        } else {
+            $cleaned['end_date'] = $endDate;
+        }
+    } else {
+        $cleaned['end_date'] = null;
+    }
+
+    // Validate that end date is not before start date
+    if (!empty($cleaned['event_date']) && !empty($cleaned['end_date'])) {
+        $startDateObj = DateTime::createFromFormat('Y-m-d', $cleaned['event_date']);
+        $endDateObj = DateTime::createFromFormat('Y-m-d', $cleaned['end_date']);
+        
+        if ($endDateObj < $startDateObj) {
+            $errors[] = 'End date cannot be before start date.';
+        }
+    }
+
+    // Validate start time (optional)
+    $startTime = trim($data['start_time'] ?? '');
+    if (!empty($startTime)) {
+        $timeObj = DateTime::createFromFormat('H:i', $startTime);
+        if (!$timeObj || $timeObj->format('H:i') !== $startTime) {
+            $errors[] = 'Please enter a valid start time in HH:MM format.';
+        } else {
+            $cleaned['start_time'] = $startTime . ':00'; // Add seconds
+        }
+    } else {
+        $cleaned['start_time'] = null;
+    }
+
+    // Validate end time (optional)
+    $endTime = trim($data['end_time'] ?? '');
+    if (!empty($endTime)) {
+        $timeObj = DateTime::createFromFormat('H:i', $endTime);
+        if (!$timeObj || $timeObj->format('H:i') !== $endTime) {
+            $errors[] = 'Please enter a valid end time in HH:MM format.';
+        } else {
+            $cleaned['end_time'] = $endTime . ':00'; // Add seconds
+        }
+    } else {
+        $cleaned['end_time'] = null;
+    }
+
+    // Validate that end time is after start time if both are provided
+    if (!empty($cleaned['start_time']) && !empty($cleaned['end_time'])) {
+        $startDateTime = DateTime::createFromFormat('H:i:s', $cleaned['start_time']);
+        $endDateTime = DateTime::createFromFormat('H:i:s', $cleaned['end_time']);
+        
+        if ($endDateTime <= $startDateTime) {
+            $errors[] = 'End time must be after start time.';
+        }
     }
 
     // Validate event type
+    $eventType = trim($data['event_type'] ?? '');
     $validTypes = ['event', 'task', 'meeting', 'reminder'];
-    if (!empty($data['event_type']) && !in_array($data['event_type'], $validTypes, true)) {
-        $errors[] = 'Invalid event type.';
+    if (empty($eventType) || !in_array($eventType, $validTypes, true)) {
+        $errors[] = 'Please select a valid event type.';
+    } else {
+        $cleaned['event_type'] = $eventType;
     }
 
     // Validate task_id (optional)
-    if (!empty($data['task_id']) && !is_numeric($data['task_id'])) {
-        $errors[] = 'Invalid task ID.';
-    }
+    $taskId = (int)($data['task_id'] ?? 0);
+    $cleaned['task_id'] = $taskId > 0 ? $taskId : null;
 
-    return $errors;
+    return [
+        'errors' => $errors,
+        'data' => $cleaned
+    ];
 }
 
 // Handle form submissions
@@ -154,23 +248,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (isset($_POST['add_event'])) {
-            $validationErrors = validateEventInput($_POST);
+            $validation = validateEventInput($_POST);
+            $validationErrors = $validation['errors'];
 
             if (!empty($validationErrors)) {
                 Session::setError(implode(' ', $validationErrors));
             } else {
-                $eventTitle = trim($_POST['event_title']);
-                $eventDescription = trim($_POST['event_description'] ?? '');
-                $eventDate = $_POST['event_date'];
-                $eventTime = !empty($_POST['event_time']) ? $_POST['event_time'] : null;
-                $eventType = $_POST['event_type'] ?? 'event';
-                $taskId = !empty($_POST['task_id']) ? (int)$_POST['task_id'] : null;
-
+                $data = $validation['data'];
+                
                 // If task_id is provided, verify it exists
-                if ($taskId) {
+                if ($data['task_id']) {
                     $taskExists = Database::fetchOne(
                         "SELECT task_id FROM tbl_tasks WHERE task_id = ?",
-                        [$taskId]
+                        [$data['task_id']]
                     );
 
                     if (!$taskExists) {
@@ -181,8 +271,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $result = Database::execute(
-                    "INSERT INTO tbl_calendar_events (event_title, event_description, event_date, event_time, event_type, task_id) VALUES (?, ?, ?, ?, ?, ?)",
-                    [$eventTitle, $eventDescription, $eventDate, $eventTime, $eventType, $taskId]
+                    "INSERT INTO tbl_calendar_events (event_title, event_description, event_date, end_date, start_time, end_time, event_type, task_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    [$data['event_title'], $data['event_description'], $data['event_date'], $data['end_date'], $data['start_time'], $data['end_time'], $data['event_type'], $data['task_id']]
                 );
 
                 if ($result) {
@@ -198,7 +288,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (isset($_POST['update_event'])) {
             $eventId = (int)($_POST['event_id'] ?? 0);
-            $validationErrors = validateEventInput($_POST);
+            $validation = validateEventInput($_POST);
+            $validationErrors = $validation['errors'];
 
             if ($eventId <= 0) {
                 Session::setError('Invalid event ID.');
@@ -214,18 +305,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$eventExists) {
                     Session::setError('Event not found.');
                 } else {
-                    $eventTitle = trim($_POST['event_title']);
-                    $eventDescription = trim($_POST['event_description'] ?? '');
-                    $eventDate = $_POST['event_date'];
-                    $eventTime = !empty($_POST['event_time']) ? $_POST['event_time'] : null;
-                    $eventType = $_POST['event_type'] ?? 'event';
-                    $taskId = !empty($_POST['task_id']) ? (int)$_POST['task_id'] : null;
+                    $data = $validation['data'];
 
                     // If task_id is provided, verify it exists
-                    if ($taskId) {
+                    if ($data['task_id']) {
                         $taskExists = Database::fetchOne(
                             "SELECT task_id FROM tbl_tasks WHERE task_id = ?",
-                            [$taskId]
+                            [$data['task_id']]
                         );
 
                         if (!$taskExists) {
@@ -236,8 +322,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
 
                     $result = Database::execute(
-                        "UPDATE tbl_calendar_events SET event_title = ?, event_description = ?, event_date = ?, event_time = ?, event_type = ?, task_id = ? WHERE event_id = ?",
-                        [$eventTitle, $eventDescription, $eventDate, $eventTime, $eventType, $taskId, $eventId]
+                        "UPDATE tbl_calendar_events SET event_title = ?, event_description = ?, event_date = ?, end_date = ?, start_time = ?, end_time = ?, event_type = ?, task_id = ? WHERE event_id = ?",
+                        [$data['event_title'], $data['event_description'], $data['event_date'], $data['end_date'], $data['start_time'], $data['end_time'], $data['event_type'], $data['task_id'], $eventId]
                     );
 
                     if ($result) {
@@ -620,16 +706,31 @@ try {
                             <div class="text-info">Maximum 1000 characters</div>
                         </div>
                         <div class="row">
+                             <div class="col-md-6">
+                                 <div class="mb-3">
+                                     <label for="event_date" class="form-label">Start Date *</label>
+                                     <input type="date" class="form-control" id="event_date" name="event_date" required>
+                                 </div>
+                             </div>
+                             <div class="col-md-6">
+                                 <div class="mb-3">
+                                     <label for="end_date" class="form-label">End Date</label>
+                                     <input type="date" class="form-control" id="end_date" name="end_date">
+                                     <div class="form-text">Leave empty for single-day events</div>
+                                 </div>
+                             </div>
+                         </div>
+                        <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="event_date" class="form-label">Date *</label>
-                                    <input type="date" class="form-control" id="event_date" name="event_date" required>
+                                    <label for="start_time" class="form-label">Start Time</label>
+                                    <input type="time" class="form-control" id="start_time" name="start_time">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="event_time" class="form-label">Time</label>
-                                    <input type="time" class="form-control" id="event_time" name="event_time">
+                                    <label for="end_time" class="form-label">End Time</label>
+                                    <input type="time" class="form-control" id="end_time" name="end_time">
                                 </div>
                             </div>
                         </div>
@@ -715,16 +816,31 @@ try {
                             <div class="text-info">Maximum 1000 characters</div>
                         </div>
                         <div class="row">
+                             <div class="col-md-6">
+                                 <div class="mb-3">
+                                     <label for="edit_event_date" class="form-label">Start Date *</label>
+                                     <input type="date" class="form-control" id="edit_event_date" name="event_date" required>
+                                 </div>
+                             </div>
+                             <div class="col-md-6">
+                                 <div class="mb-3">
+                                     <label for="edit_end_date" class="form-label">End Date</label>
+                                     <input type="date" class="form-control" id="edit_end_date" name="end_date">
+                                     <div class="form-text">Leave empty for single-day events</div>
+                                 </div>
+                             </div>
+                         </div>
+                        <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="edit_event_date" class="form-label">Date *</label>
-                                    <input type="date" class="form-control" id="edit_event_date" name="event_date" required>
+                                    <label for="edit_start_time" class="form-label">Start Time</label>
+                                    <input type="time" class="form-control" id="edit_start_time" name="start_time">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="edit_event_time" class="form-label">Time</label>
-                                    <input type="time" class="form-control" id="edit_event_time" name="event_time">
+                                    <label for="edit_end_time" class="form-label">End Time</label>
+                                    <input type="time" class="form-control" id="edit_end_time" name="end_time">
                                 </div>
                             </div>
                         </div>
@@ -807,8 +923,8 @@ try {
             function showEventDetails(event) {
                 var content = `
                     <h6><strong>${event.title}</strong></h6>
-                    <p><strong>Date:</strong> ${event.start.toLocaleDateString()}</p>
-                    ${event.start.toTimeString() !== '00:00:00' ? `<p><strong>Time:</strong> ${event.start.toLocaleTimeString()}</p>` : ''}
+                     <p><strong>Date:</strong> ${getDateDisplay(event.start, event.extendedProps.end_date)}</p>
+                    ${event.extendedProps.start_time || event.extendedProps.end_time ? `<p><strong>Time:</strong> ${getTimeDisplay(event.extendedProps.start_time, event.extendedProps.end_time)}</p>` : ''}
                     ${event.extendedProps.description ? `<p><strong>Description:</strong> ${event.extendedProps.description}</p>` : ''}
                     ${event.extendedProps.priority ? `<p><strong>Priority:</strong> <span class="badge bg-${getPriorityColor(event.extendedProps.priority)}">${event.extendedProps.priority}</span></p>` : ''}
                     ${event.extendedProps.list_name ? `<p><strong>List:</strong> ${event.extendedProps.list_name}</p>` : ''}
@@ -865,6 +981,41 @@ try {
                 }
             }
 
+            function getTimeDisplay(startTime, endTime) {
+                 let timeDisplay = '';
+                 
+                 if (startTime) {
+                     const start = new Date('1970-01-01T' + startTime).toLocaleTimeString('en-US', {
+                         hour: '2-digit',
+                         minute: '2-digit',
+                         hour12: true
+                     });
+                     timeDisplay += start;
+                 }
+                 
+                 if (endTime) {
+                     const end = new Date('1970-01-01T' + endTime).toLocaleTimeString('en-US', {
+                         hour: '2-digit',
+                         minute: '2-digit',
+                         hour12: true
+                     });
+                     timeDisplay += timeDisplay ? ` - ${end}` : end;
+                 }
+                 
+                 return timeDisplay;
+             }
+
+             function getDateDisplay(startDate, endDate) {
+                 const startDateStr = startDate.toLocaleDateString();
+                 
+                 if (endDate && endDate !== startDate.toISOString().split('T')[0]) {
+                     const endDateObj = new Date(endDate);
+                     return `${startDateStr} - ${endDateObj.toLocaleDateString()}`;
+                 }
+                 
+                 return startDateStr;
+             }
+
             function populateEditModal(event) {
                 // Get event details from server to populate edit form
                 fetch(`calendar.php?action=get_event_details&event_id=${event.id}`)
@@ -884,8 +1035,10 @@ try {
                         document.getElementById('edit_event_id').value = data.event_id;
                         document.getElementById('edit_event_title').value = data.event_title || '';
                         document.getElementById('edit_event_description').value = data.event_description || '';
-                        document.getElementById('edit_event_date').value = data.event_date || '';
-                        document.getElementById('edit_event_time').value = data.event_time || '';
+                         document.getElementById('edit_event_date').value = data.event_date || '';
+                         document.getElementById('edit_end_date').value = data.end_date || '';
+                        document.getElementById('edit_start_time').value = data.start_time ? data.start_time.substring(0, 5) : '';
+                        document.getElementById('edit_end_time').value = data.end_time ? data.end_time.substring(0, 5) : '';
                         document.getElementById('edit_event_type').value = data.event_type || 'event';
                         document.getElementById('edit_task_id').value = data.task_id || '';
                     })
