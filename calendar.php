@@ -76,6 +76,31 @@ if (isset($_GET['action'])) {
             exit;
         }
     }
+
+    if ($_GET['action'] === 'get_event_details') {
+        try {
+            $eventId = (int)($_GET['event_id'] ?? 0);
+
+            if ($eventId <= 0) {
+                throw new InvalidArgumentException('Invalid event ID');
+            }
+
+            $sql = "SELECT * FROM tbl_calendar_events WHERE event_id = ?";
+            $event = Database::fetchOne($sql, [$eventId]);
+
+            if (!$event) {
+                throw new InvalidArgumentException('Event not found');
+            }
+
+            echo json_encode($event);
+            exit;
+        } catch (Exception $e) {
+            error_log('Get event details error: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to fetch event details: ' . $e->getMessage()]);
+            exit;
+        }
+    }
 }
 
 /**
@@ -164,6 +189,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     Session::setSuccess('Calendar event added successfully!');
                 } else {
                     Session::setError('Failed to add calendar event.');
+                }
+            }
+
+            header('Location: calendar.php');
+            exit;
+        }
+
+        if (isset($_POST['update_event'])) {
+            $eventId = (int)($_POST['event_id'] ?? 0);
+            $validationErrors = validateEventInput($_POST);
+
+            if ($eventId <= 0) {
+                Session::setError('Invalid event ID.');
+            } elseif (!empty($validationErrors)) {
+                Session::setError(implode(' ', $validationErrors));
+            } else {
+                // Check if event exists
+                $eventExists = Database::fetchOne(
+                    "SELECT event_id FROM tbl_calendar_events WHERE event_id = ?",
+                    [$eventId]
+                );
+
+                if (!$eventExists) {
+                    Session::setError('Event not found.');
+                } else {
+                    $eventTitle = trim($_POST['event_title']);
+                    $eventDescription = trim($_POST['event_description'] ?? '');
+                    $eventDate = $_POST['event_date'];
+                    $eventTime = !empty($_POST['event_time']) ? $_POST['event_time'] : null;
+                    $eventType = $_POST['event_type'] ?? 'event';
+                    $taskId = !empty($_POST['task_id']) ? (int)$_POST['task_id'] : null;
+
+                    // If task_id is provided, verify it exists
+                    if ($taskId) {
+                        $taskExists = Database::fetchOne(
+                            "SELECT task_id FROM tbl_tasks WHERE task_id = ?",
+                            [$taskId]
+                        );
+
+                        if (!$taskExists) {
+                            Session::setError('Selected task does not exist.');
+                            header('Location: calendar.php');
+                            exit;
+                        }
+                    }
+
+                    $result = Database::execute(
+                        "UPDATE tbl_calendar_events SET event_title = ?, event_description = ?, event_date = ?, event_time = ?, event_type = ?, task_id = ? WHERE event_id = ?",
+                        [$eventTitle, $eventDescription, $eventDate, $eventTime, $eventType, $taskId, $eventId]
+                    );
+
+                    if ($result) {
+                        Session::setSuccess('Event updated successfully!');
+                    } else {
+                        Session::setError('Failed to update event.');
+                    }
                 }
             }
 
@@ -600,10 +681,84 @@ try {
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="editEventBtn" style="display: none;">
+                        <i class="fas fa-edit me-1"></i>Edit Event
+                    </button>
                     <button type="button" class="btn btn-danger" id="deleteEventBtn" style="display: none;">
                         <i class="fas fa-trash me-1"></i>Delete Event
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Event Modal -->
+    <div class="modal fade" id="editEventModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Edit Calendar Event</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" id="editEventForm">
+                    <input type="hidden" name="csrf_token" value="<?= Session::getCsrfToken() ?>">
+                    <input type="hidden" name="event_id" id="edit_event_id">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="edit_event_title" class="form-label">Event Title *</label>
+                            <input type="text" class="form-control" id="edit_event_title" name="event_title" required maxlength="255">
+                            <div class="text-info">Maximum 255 characters</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_event_description" class="form-label">Description</label>
+                            <textarea class="form-control" id="edit_event_description" name="event_description" rows="3" maxlength="1000"></textarea>
+                            <div class="text-info">Maximum 1000 characters</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit_event_date" class="form-label">Date *</label>
+                                    <input type="date" class="form-control" id="edit_event_date" name="event_date" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit_event_time" class="form-label">Time</label>
+                                    <input type="time" class="form-control" id="edit_event_time" name="event_time">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_event_type" class="form-label">Event Type</label>
+                            <select class="form-select" id="edit_event_type" name="event_type">
+                                <option value="event">General Event</option>
+                                <option value="task">Task Deadline</option>
+                                <option value="meeting">Meeting</option>
+                                <option value="reminder">Reminder</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_task_id" class="form-label">Link to Task (Optional)</label>
+                            <select class="form-select" id="edit_task_id" name="task_id">
+                                <option value="">-- Select Task --</option>
+                                <?php foreach ($tasks as $task): ?>
+                                    <option value="<?= $task['task_id'] ?>">
+                                        <?= htmlspecialchars($task['task_name']) ?>
+                                        <?php if ($task['list_name']): ?>
+                                            (<?= htmlspecialchars($task['list_name']) ?>)
+                                        <?php endif; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" name="update_event" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Update Event
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -662,9 +817,21 @@ try {
 
                 document.getElementById('eventDetailsContent').innerHTML = content;
 
-                // Show delete button and set up delete functionality
+                // Show edit and delete buttons and set up functionality
+                var editBtn = document.getElementById('editEventBtn');
                 var deleteBtn = document.getElementById('deleteEventBtn');
+                
+                editBtn.style.display = 'inline-block';
                 deleteBtn.style.display = 'inline-block';
+                
+                editBtn.onclick = function() {
+                    populateEditModal(event);
+                    var editModal = new bootstrap.Modal(document.getElementById('editEventModal'));
+                    var detailsModal = bootstrap.Modal.getInstance(document.getElementById('eventDetailsModal'));
+                    detailsModal.hide();
+                    editModal.show();
+                };
+                
                 deleteBtn.onclick = function() {
                     Swal.fire({
                         title: 'Are you sure?',
@@ -696,6 +863,41 @@ try {
                     default:
                         return 'primary';
                 }
+            }
+
+            function populateEditModal(event) {
+                // Get event details from server to populate edit form
+                fetch(`calendar.php?action=get_event_details&event_id=${event.id}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: data.error,
+                                confirmButtonColor: '#dc3545'
+                            });
+                            return;
+                        }
+                        
+                        // Populate edit form fields
+                        document.getElementById('edit_event_id').value = data.event_id;
+                        document.getElementById('edit_event_title').value = data.event_title || '';
+                        document.getElementById('edit_event_description').value = data.event_description || '';
+                        document.getElementById('edit_event_date').value = data.event_date || '';
+                        document.getElementById('edit_event_time').value = data.event_time || '';
+                        document.getElementById('edit_event_type').value = data.event_type || 'event';
+                        document.getElementById('edit_task_id').value = data.task_id || '';
+                    })
+                    .catch(error => {
+                        console.error('Error fetching event details:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: 'Failed to load event details',
+                            confirmButtonColor: '#dc3545'
+                        });
+                    });
             }
 
             function deleteEvent(eventId) {
