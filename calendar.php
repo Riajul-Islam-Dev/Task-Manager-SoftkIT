@@ -716,7 +716,7 @@ try {
                                  <div class="mb-3">
                                      <label for="end_date" class="form-label">End Date</label>
                                      <input type="date" class="form-control" id="end_date" name="end_date">
-                                     <div class="form-text">Leave empty for single-day events</div>
+                                     <div class="text-info">Leave empty for single-day events</div>
                                  </div>
                              </div>
                          </div>
@@ -826,7 +826,7 @@ try {
                                  <div class="mb-3">
                                      <label for="edit_end_date" class="form-label">End Date</label>
                                      <input type="date" class="form-control" id="edit_end_date" name="end_date">
-                                     <div class="form-text">Leave empty for single-day events</div>
+                                     <div class="text-info">Leave empty for single-day events</div>
                                  </div>
                              </div>
                          </div>
