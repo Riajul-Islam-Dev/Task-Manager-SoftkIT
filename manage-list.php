@@ -128,6 +128,11 @@ Session::start();
                             <i class="fas fa-calendar me-1"></i>Calendar
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="manage-event-types.php">
+                            <i class="fas fa-tags me-1"></i>Event Types
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>

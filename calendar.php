@@ -7,6 +7,7 @@ require_once 'config/constants.php';
 require_once 'config/Database.php';
 require_once 'config/Session.php';
 require_once 'config/Enums.php';
+require_once 'config/EventTypeService.php';
 
 // Start session
 Session::start();
@@ -42,12 +43,17 @@ if (isset($_GET['action'])) {
             $events = [];
 
             foreach ($events_data as $row) {
-                $color = match ($row['priority'] ?? null) {
+                // Get color from event type, fallback to priority-based color
+                $eventTypeColor = EventTypeService::getEventTypeColor($row['event_type'] ?? '');
+                $priorityColor = match ($row['priority'] ?? null) {
                     'High' => '#dc3545',
                     'Medium' => '#ffc107',
                     'Low' => '#28a745',
                     default => '#007bff'
                 };
+                
+                // Use event type color if available, otherwise use priority color
+                $color = $eventTypeColor !== '#007bff' ? $eventTypeColor : $priorityColor;
 
                 $startTime = $row['start_time'] ?? '00:00:00';
                 $endTime = $row['end_time'] ?? null;
@@ -218,10 +224,11 @@ function validateEventInput(array $data): array
         }
     }
 
-    // Validate event type
+    // Validate event type using dynamic service
     $eventType = trim($data['event_type'] ?? '');
-    $validTypes = ['event', 'task', 'meeting', 'reminder'];
-    if (empty($eventType) || !in_array($eventType, $validTypes, true)) {
+    if (empty($eventType)) {
+        $errors[] = 'Please select an event type.';
+    } elseif (!EventTypeService::isValidEventType($eventType)) {
         $errors[] = 'Please select a valid event type.';
     } else {
         $cleaned['event_type'] = $eventType;
@@ -386,6 +393,9 @@ try {
     error_log('Error fetching tasks: ' . $e->getMessage());
     $tasks = [];
 }
+
+// Get all active event types for dropdown
+$eventTypes = EventTypeService::getActiveEventTypes();
 
 // Get all lists for navigation
 try {
@@ -622,6 +632,11 @@ try {
                             <i class="fas fa-calendar me-1"></i>Calendar
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="manage-event-types.php">
+                            <i class="fas fa-tags me-1"></i>Event Types
+                        </a>
+                    </li>
                 </ul>
                 <ul class="navbar-nav">
                     <?php if (!empty($lists)): ?>
@@ -736,11 +751,13 @@ try {
                         </div>
                         <div class="mb-3">
                             <label for="event_type" class="form-label">Event Type</label>
-                            <select class="form-select" id="event_type" name="event_type">
-                                <option value="event">General Event</option>
-                                <option value="task">Task Deadline</option>
-                                <option value="meeting">Meeting</option>
-                                <option value="reminder">Reminder</option>
+                            <select class="form-select" id="event_type" name="event_type" required>
+                                <option value="">-- Select Event Type --</option>
+                                <?php foreach ($eventTypes as $eventType): ?>
+                                    <option value="<?= htmlspecialchars($eventType['type_code']) ?>">
+                                        <?= htmlspecialchars($eventType['type_name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="mb-3">
@@ -846,11 +863,13 @@ try {
                         </div>
                         <div class="mb-3">
                             <label for="edit_event_type" class="form-label">Event Type</label>
-                            <select class="form-select" id="edit_event_type" name="event_type">
-                                <option value="event">General Event</option>
-                                <option value="task">Task Deadline</option>
-                                <option value="meeting">Meeting</option>
-                                <option value="reminder">Reminder</option>
+                            <select class="form-select" id="edit_event_type" name="event_type" required>
+                                <option value="">-- Select Event Type --</option>
+                                <?php foreach ($eventTypes as $eventType): ?>
+                                    <option value="<?= htmlspecialchars($eventType['type_code']) ?>">
+                                        <?= htmlspecialchars($eventType['type_name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="mb-3">
