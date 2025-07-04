@@ -190,13 +190,11 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Event Types - Task Manager</title>
-    <link rel="icon" type="image/png" href="assets/img/favicon.png">
-
-    <!-- Bootstrap 5 CSS -->
+    <title>Manage Event Types - Task Manager - SoftkIT</title>
+    <link href="assets/img/favicon.png" rel="icon">
     <link href="css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
     <link href="css/all.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
     <!-- SweetAlert2 CSS -->
     <link href="css/sweetalert2.min.css" rel="stylesheet">
     <style>
@@ -224,8 +222,77 @@ try {
         }
 
         .table-dark {
-            background-color: #161b22;
+            background-color: #21262d;
             border-color: #30363d;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: #262c36;
+        }
+
+        .btn-primary {
+            background-color: #238636;
+            border-color: #238636;
+        }
+
+        .btn-primary:hover {
+            background-color: #2ea043;
+            border-color: #2ea043;
+        }
+
+        .alert-success {
+            background-color: #0f2419;
+            border-color: #1a7f37;
+            color: #3fb950;
+        }
+
+        .alert-danger {
+            background-color: #2d1117;
+            border-color: #da3633;
+            color: #f85149;
+        }
+
+        .alert-warning {
+            background-color: #332b00;
+            border-color: #d29922;
+            color: #f2cc60;
+        }
+
+        .alert-info {
+            background-color: #0c2d48;
+            border-color: #1f6feb;
+            color: #79c0ff;
+        }
+
+        .btn-outline-primary {
+            color: #58a6ff;
+            border-color: #30363d;
+        }
+
+        .btn-outline-primary:hover {
+            background-color: #1f6feb;
+            border-color: #1f6feb;
+            color: #ffffff;
+        }
+
+        .btn-outline-warning {
+            color: #d29922;
+            border-color: #30363d;
+        }
+
+        .btn-outline-warning:hover {
+            background-color: #d29922;
+            border-color: #d29922;
+            color: #000000;
+        }
+
+        .color-preview {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            border: 1px solid #30363d;
+            vertical-align: middle;
         }
 
         .table-dark td,
@@ -309,11 +376,10 @@ try {
 </head>
 
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #21262d; border-bottom: 1px solid #30363d;">
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4" style="background-color: #21262d; border-bottom: 1px solid #30363d;">
         <div class="container">
-            <a class="navbar-brand" href="index.php">
-                <i class="fas fa-tasks me-2"></i>Task Manager
+            <a class="navbar-brand" href="<?php echo SITEURL; ?>">
+                <i class="fas fa-tasks me-2"></i>Task Manager - SoftkIT
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -321,24 +387,51 @@ try {
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="index.php">Dashboard</a>
+                        <a class="nav-link" href="<?php echo SITEURL; ?>">Home</a>
+                    </li>
+
+                    <?php
+                        try {
+                            // Query to get all lists using modern Database class
+                            $navLists = Database::fetchAll(
+                                "SELECT list_id, list_name FROM tbl_lists ORDER BY list_name ASC"
+                            );
+                            
+                            foreach ($navLists as $list) {
+                                $listId = (int) $list['list_id'];
+                                $listName = htmlspecialchars($list['list_name'], ENT_QUOTES, 'UTF-8');
+                                echo "<li class='nav-item'>";
+                                echo "<a class='nav-link' href='" . SITEURL . "list-task.php?list_id={$listId}'>{$listName}</a>";
+                                echo "</li>";
+                            }
+                        } catch (Exception $e) {
+                            error_log("Error fetching lists for navigation: " . $e->getMessage());
+                        }
+                    ?>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?php echo SITEURL; ?>manage-list.php">
+                            <i class="fas fa-cog me-1"></i>Manage Lists
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="calendar.php">Calendar</a>
+                        <a class="nav-link" href="<?php echo SITEURL; ?>calendar.php">
+                            <i class="fas fa-calendar me-1"></i>Calendar
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="manage-list.php">Manage Lists</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="manage-event-types.php">Event Types</a>
+                        <a class="nav-link active" href="manage-event-types.php">
+                            <i class="fas fa-tags me-1"></i>Event Types
+                        </a>
                     </li>
                 </ul>
             </div>
         </div>
     </nav>
 
-    <div class="container mt-4">
-        <!-- Alert Messages -->
+    <div class="container">
+        <!-- Flash Messages -->
         <?php if (Session::hasFlashMessages()): ?>
             <?php foreach (Session::getFlashMessages() as $flash): ?>
                 <?php
@@ -358,49 +451,58 @@ try {
                 };
                 ?>
                 <div class="alert <?= $alertClass ?> alert-dismissible fade show" role="alert">
-                    <i class="<?= $icon ?> me-2"></i><?= htmlspecialchars($flash['message']) ?>
+                    <i class="<?= $icon ?> me-2"></i>
+                    <?= htmlspecialchars($flash['message']) ?>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>
 
-        <!-- Page Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1><i class="fas fa-tags me-2"></i>Manage Event Types</h1>
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEventTypeModal">
-                <i class="fas fa-plus me-1"></i>Add Event Type
-            </button>
-        </div>
-
-        <!-- Event Types Table -->
         <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-list me-2"></i>Event Types</h5>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-tags me-2"></i>Manage Event Types
+                </h5>
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addEventTypeModal">
+                    <i class="fas fa-plus me-1"></i>Add Event Type
+                </button>
             </div>
             <div class="card-body p-0">
-                <?php if (empty($allEventTypes)): ?>
-                    <div class="text-center py-4">
-                        <i class="fas fa-tags fa-3x mb-3"></i>
-                        <p>No event types found.</p>
-                    </div>
-                <?php else: ?>
-                    <div class="table-responsive">
-                        <table class="table table-dark table-hover mb-0">
-                            <thead>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th class="border-0">Type Code</th>
+                                <th class="border-0">Type Name</th>
+                                <th class="border-0">Color</th>
+                                <th class="border-0">Sort Order</th>
+                                <th class="border-0">Status</th>
+                                <th class="border-0 text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($allEventTypes)): ?>
                                 <tr>
-                                    <th>Code</th>
-                                    <th>Name</th>
-                                    <th>Color</th>
-                                    <th>Sort Order</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
+                                    <td colspan="6" class="text-center py-5">
+                                        <div class="text-muted">
+                                            <i class="fas fa-tags fa-3x mb-3 opacity-50"></i>
+                                            <h6>No event types found</h6>
+                                            <p class="mb-3">Get started by creating your first event type.</p>
+                                            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addEventTypeModal">
+                                                <i class="fas fa-plus me-1"></i>Add Event Type
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
+                            <?php else: ?>
                                 <?php foreach ($allEventTypes as $eventType): ?>
                                     <tr>
-                                        <td><code><?= htmlspecialchars($eventType['type_code']) ?></code></td>
-                                        <td><?= htmlspecialchars($eventType['type_name']) ?></td>
+                                        <td>
+                                            <code class="text-info"><?= htmlspecialchars($eventType['type_code']) ?></code>
+                                        </td>
+                                        <td>
+                                            <strong><?= htmlspecialchars($eventType['type_name']) ?></strong>
+                                        </td>
                                         <td>
                                             <span class="color-preview" style="background-color: <?= htmlspecialchars($eventType['type_color']) ?>"></span>
                                             <small class="ms-2"><?= htmlspecialchars($eventType['type_color']) ?></small>
@@ -408,33 +510,37 @@ try {
                                         <td><?= $eventType['sort_order'] ?></td>
                                         <td>
                                             <?php if ($eventType['is_active']): ?>
-                                                <span class="badge bg-success">Active</span>
+                                                <span class="badge bg-success"><i class="fas fa-check me-1"></i>Active</span>
                                             <?php else: ?>
-                                                <span class="badge bg-secondary">Inactive</span>
+                                                <span class="badge bg-secondary"><i class="fas fa-times me-1"></i>Inactive</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td>
-                                            <button type="button" class="btn btn-sm btn-outline-primary me-1"
-                                                onclick="editEventType(<?= htmlspecialchars(json_encode($eventType)) ?>)">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <?php if ($eventType['is_active']): ?>
-                                                <form method="POST" class="d-inline"
-                                                    onsubmit="return confirm('Are you sure you want to deactivate this event type?')">
-                                                    <input type="hidden" name="csrf_token" value="<?= Session::getCsrfToken() ?>">
-                                                    <input type="hidden" name="event_type_id" value="<?= $eventType['event_type_id'] ?>">
-                                                    <button type="submit" name="deactivate_event_type" class="btn btn-sm btn-outline-danger">
-                                                        <i class="fas fa-ban"></i>
-                                                    </button>
-                                                </form>
-                                            <?php endif; ?>
+                                        <td class="text-end">
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <button type="button" class="btn btn-outline-primary" 
+                                                        onclick="editEventType(<?= htmlspecialchars(json_encode($eventType)) ?>)"
+                                                        data-bs-toggle="tooltip" title="Edit event type">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <?php if ($eventType['is_active']): ?>
+                                                    <form method="POST" class="d-inline"
+                                                        onsubmit="return confirm('Are you sure you want to deactivate this event type?')">
+                                                        <input type="hidden" name="csrf_token" value="<?= Session::getCsrfToken() ?>">
+                                                        <input type="hidden" name="event_type_id" value="<?= $eventType['event_type_id'] ?>">
+                                                        <button type="submit" name="deactivate_event_type" class="btn btn-outline-warning"
+                                                                data-bs-toggle="tooltip" title="Deactivate event type">
+                                                            <i class="fas fa-ban"></i>
+                                                        </button>
+                                                    </form>
+                                                <?php endif; ?>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                <?php endif; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -536,6 +642,14 @@ try {
     <script src="js/sweetalert2.all.min.js"></script>
 
     <script>
+        // Initialize Bootstrap tooltips
+        document.addEventListener('DOMContentLoaded', function() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+
         function editEventType(eventType) {
             document.getElementById('edit_event_type_id').value = eventType.event_type_id;
             document.getElementById('edit_type_code').value = eventType.type_code;
