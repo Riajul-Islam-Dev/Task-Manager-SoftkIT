@@ -391,22 +391,22 @@ try {
                     </li>
 
                     <?php
-                        try {
-                            // Query to get all lists using modern Database class
-                            $navLists = Database::fetchAll(
-                                "SELECT list_id, list_name FROM tbl_lists ORDER BY list_name ASC"
-                            );
-                            
-                            foreach ($navLists as $list) {
-                                $listId = (int) $list['list_id'];
-                                $listName = htmlspecialchars($list['list_name'], ENT_QUOTES, 'UTF-8');
-                                echo "<li class='nav-item'>";
-                                echo "<a class='nav-link' href='" . SITEURL . "list-task.php?list_id={$listId}'>{$listName}</a>";
-                                echo "</li>";
-                            }
-                        } catch (Exception $e) {
-                            error_log("Error fetching lists for navigation: " . $e->getMessage());
+                    try {
+                        // Query to get all lists using modern Database class
+                        $navLists = Database::fetchAll(
+                            "SELECT list_id, list_name FROM tbl_lists ORDER BY list_name ASC"
+                        );
+
+                        foreach ($navLists as $list) {
+                            $listId = (int) $list['list_id'];
+                            $listName = htmlspecialchars($list['list_name'], ENT_QUOTES, 'UTF-8');
+                            echo "<li class='nav-item'>";
+                            echo "<a class='nav-link' href='" . SITEURL . "list-task.php?list_id={$listId}'>{$listName}</a>";
+                            echo "</li>";
                         }
+                    } catch (Exception $e) {
+                        error_log("Error fetching lists for navigation: " . $e->getMessage());
+                    }
                     ?>
                 </ul>
                 <ul class="navbar-nav">
@@ -517,9 +517,9 @@ try {
                                         </td>
                                         <td class="text-end">
                                             <div class="btn-group btn-group-sm" role="group">
-                                                <button type="button" class="btn btn-outline-primary" 
-                                                        onclick="editEventType(<?= htmlspecialchars(json_encode($eventType)) ?>)"
-                                                        data-bs-toggle="tooltip" title="Edit event type">
+                                                <button type="button" class="btn btn-outline-primary"
+                                                    onclick="editEventType(<?= htmlspecialchars(json_encode($eventType)) ?>)"
+                                                    data-bs-toggle="tooltip" title="Edit event type">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
                                                 <?php if ($eventType['is_active']): ?>
@@ -528,7 +528,7 @@ try {
                                                         <input type="hidden" name="csrf_token" value="<?= Session::getCsrfToken() ?>">
                                                         <input type="hidden" name="event_type_id" value="<?= $eventType['event_type_id'] ?>">
                                                         <button type="submit" name="deactivate_event_type" class="btn btn-outline-warning"
-                                                                data-bs-toggle="tooltip" title="Deactivate event type">
+                                                            data-bs-toggle="tooltip" title="Deactivate event type">
                                                             <i class="fas fa-ban"></i>
                                                         </button>
                                                     </form>
@@ -645,7 +645,7 @@ try {
         // Initialize Bootstrap tooltips
         document.addEventListener('DOMContentLoaded', function() {
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
         });
