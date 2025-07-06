@@ -77,6 +77,11 @@ if (isset($_GET['action'])) {
                     'end' => $eventEnd,
                     'backgroundColor' => $color,
                     'borderColor' => $color,
+                    'classNames' => [
+                        'event-type-' . strtolower($row['event_type'] ?? 'event'),
+                        $row['priority'] ? 'priority-' . strtolower($row['priority']) : '',
+                        ($startTime && $startTime !== '00:00:00') ? 'has-time' : ''
+                    ],
                     'extendedProps' => [
                         'description' => $row['task_description'] ?: $row['event_description'],
                         'priority' => $row['priority'],
@@ -550,40 +555,114 @@ try {
 
         .fc-event {
             cursor: pointer;
-            border: none;
-            border-radius: 4px;
+            border: none !important;
+            border-radius: 6px !important;
+            padding: 2px 6px !important;
+            margin: 1px 0 !important;
+            font-size: 12px !important;
+            font-weight: 500 !important;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+            transition: all 0.2s ease !important;
+            position: relative !important;
+            overflow: hidden !important;
         }
 
-        .fc-event-task {
-            background-color: #388bfd;
-            color: white;
+        .fc-event:hover {
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4) !important;
+            z-index: 10 !important;
         }
 
-        .fc-event-event {
-            background-color: #3fb950;
-            color: white;
+        .fc-event-title {
+            font-weight: 600 !important;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
         }
 
-        .fc-event-meeting {
-            background-color: #d29922;
-            color: white;
+        .fc-event-time {
+            font-size: 10px !important;
+            opacity: 0.9 !important;
+            font-weight: 400 !important;
         }
 
-        .fc-event-reminder {
-            background-color: #a5a5f0;
-            color: white;
+        /* Event type specific styling */
+        .fc-event[data-event-type="TASK"] {
+            background: linear-gradient(135deg, #388bfd 0%, #1f6feb 100%) !important;
+            border-left: 4px solid #58a6ff !important;
         }
 
-        .priority-high {
-            border-left: 4px solid #dc3545 !important;
+        .fc-event[data-event-type="MEETING"] {
+            background: linear-gradient(135deg, #d29922 0%, #b8860b 100%) !important;
+            border-left: 4px solid #f2cc60 !important;
         }
 
-        .priority-medium {
-            border-left: 4px solid #ffc107 !important;
+        .fc-event[data-event-type="REMINDER"] {
+            background: linear-gradient(135deg, #a5a5f0 0%, #8b5cf6 100%) !important;
+            border-left: 4px solid #c4b5fd !important;
         }
 
-        .priority-low {
-            border-left: 4px solid #28a745 !important;
+        .fc-event[data-event-type="EVENT"] {
+            background: linear-gradient(135deg, #3fb950 0%, #2ea043 100%) !important;
+            border-left: 4px solid #56d364 !important;
+        }
+
+        /* Priority indicators */
+        .fc-event[data-priority="High"]::before {
+            content: "●";
+            color: #ff6b6b;
+            font-size: 8px;
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .fc-event[data-priority="Medium"]::before {
+            content: "●";
+            color: #ffd93d;
+            font-size: 8px;
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .fc-event[data-priority="Low"]::before {
+            content: "●";
+            color: #6bcf7f;
+            font-size: 8px;
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Multi-day event styling */
+        .fc-event.fc-event-start {
+            border-top-left-radius: 6px !important;
+            border-bottom-left-radius: 6px !important;
+            border-top-right-radius: 2px !important;
+            border-bottom-right-radius: 2px !important;
+        }
+
+        .fc-event.fc-event-end {
+            border-top-left-radius: 2px !important;
+            border-bottom-left-radius: 2px !important;
+            border-top-right-radius: 6px !important;
+            border-bottom-right-radius: 6px !important;
+        }
+
+        .fc-event.fc-event-middle {
+            border-radius: 2px !important;
+        }
+
+        /* Event with time indicator */
+        .fc-event.has-time::after {
+            content: "🕐";
+            position: absolute;
+            bottom: 1px;
+            left: 2px;
+            font-size: 8px;
+            opacity: 0.7;
         }
 
         .alert-success {
@@ -596,6 +675,65 @@ try {
             background-color: #2d1117;
             border-color: #da3633;
             color: #f85149;
+        }
+        
+        /* Enhanced calendar styling */
+        .fc-daygrid-day:hover {
+            background-color: rgba(88, 166, 255, 0.05);
+        }
+        
+        .fc-day-today {
+            background-color: rgba(88, 166, 255, 0.1) !important;
+        }
+        
+        .fc-day-sat, .fc-day-sun {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+        
+        .fc-toolbar {
+            background: linear-gradient(135deg, #21262d, #30363d) !important;
+            border-radius: 8px !important;
+            padding: 15px !important;
+            margin-bottom: 20px !important;
+            border: 1px solid #30363d !important;
+        }
+        
+        .fc-toolbar-title {
+            color: #58a6ff !important;
+            font-weight: 600 !important;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+        }
+        
+        .fc-scrollgrid {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .fc-daygrid-day-number {
+            color: #c9d1d9;
+            font-weight: 500;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        
+        .fc-daygrid-day-number:hover {
+            background-color: rgba(88, 166, 255, 0.2);
+            color: #58a6ff;
+        }
+        
+        /* Event details modal enhancements */
+        .event-details-header {
+            transition: all 0.3s ease;
+        }
+        
+        .event-details-body .row > div {
+            transition: all 0.2s ease;
+        }
+        
+        .event-details-body .row > div:hover {
+            transform: translateX(2px);
         }
     </style>
 </head>
@@ -926,6 +1064,30 @@ try {
                         });
                     }
                 },
+                eventDidMount: function(info) {
+                    // Add data attributes for CSS styling
+                    if (info.event.extendedProps.event_type) {
+                        info.el.setAttribute('data-event-type', info.event.extendedProps.event_type.toUpperCase());
+                    }
+                    if (info.event.extendedProps.priority) {
+                        info.el.setAttribute('data-priority', info.event.extendedProps.priority);
+                    }
+                    
+                    // Add time indicator class
+                    if (info.event.extendedProps.start_time && info.event.extendedProps.start_time !== '00:00:00') {
+                        info.el.classList.add('has-time');
+                    }
+                    
+                    // Add tooltip with event details
+                    const tooltipContent = [
+                        info.event.title,
+                        info.event.extendedProps.description ? info.event.extendedProps.description.substring(0, 100) + '...' : '',
+                        info.event.extendedProps.priority ? `Priority: ${info.event.extendedProps.priority}` : '',
+                        info.event.extendedProps.list_name ? `List: ${info.event.extendedProps.list_name}` : ''
+                    ].filter(Boolean).join('\n');
+                    
+                    info.el.setAttribute('title', tooltipContent);
+                },
                 eventClick: function(info) {
                     showEventDetails(info.event);
                 },
@@ -940,14 +1102,71 @@ try {
             calendar.render();
 
             function showEventDetails(event) {
+                const eventTypeIcon = {
+                    'TASK': 'fas fa-tasks',
+                    'MEETING': 'fas fa-users',
+                    'REMINDER': 'fas fa-bell',
+                    'EVENT': 'fas fa-calendar-day'
+                };
+                
+                const priorityIcon = {
+                    'High': 'fas fa-exclamation-circle text-danger',
+                    'Medium': 'fas fa-exclamation-triangle text-warning',
+                    'Low': 'fas fa-info-circle text-success'
+                };
+                
                 var content = `
-                    <h6><strong>${event.title}</strong></h6>
-                     <p><strong>Date:</strong> ${getDateDisplay(event.start, event.extendedProps.end_date)}</p>
-                    ${event.extendedProps.start_time || event.extendedProps.end_time ? `<p><strong>Time:</strong> ${getTimeDisplay(event.extendedProps.start_time, event.extendedProps.end_time)}</p>` : ''}
-                    ${event.extendedProps.description ? `<p><strong>Description:</strong> ${event.extendedProps.description}</p>` : ''}
-                    ${event.extendedProps.priority ? `<p><strong>Priority:</strong> <span class="badge bg-${getPriorityColor(event.extendedProps.priority)}">${event.extendedProps.priority}</span></p>` : ''}
-                    ${event.extendedProps.list_name ? `<p><strong>List:</strong> ${event.extendedProps.list_name}</p>` : ''}
-                    ${event.extendedProps.event_type ? `<p><strong>Type:</strong> ${event.extendedProps.event_type}</p>` : ''}
+                    <div class="event-details-header mb-3 p-3 rounded" style="background: linear-gradient(135deg, ${event.backgroundColor}20, ${event.backgroundColor}10); border-left: 4px solid ${event.backgroundColor};">
+                        <h5 class="mb-2 d-flex align-items-center">
+                            <i class="${eventTypeIcon[event.extendedProps.event_type] || 'fas fa-calendar'} me-2" style="color: ${event.backgroundColor};"></i>
+                            <strong>${event.title}</strong>
+                            ${event.extendedProps.priority ? `<span class="ms-auto"><i class="${priorityIcon[event.extendedProps.priority]} me-1"></i><span class="badge bg-${getPriorityColor(event.extendedProps.priority)}">${event.extendedProps.priority}</span></span>` : ''}
+                        </h5>
+                        ${event.extendedProps.event_type ? `<small class="text-muted"><i class="fas fa-tag me-1"></i>${event.extendedProps.event_type}</small>` : ''}
+                    </div>
+                    
+                    <div class="event-details-body">
+                        <div class="row mb-3">
+                            <div class="col-sm-6">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                                    <strong>Date:</strong>
+                                </div>
+                                <div class="ms-4 text-muted">${getDateDisplay(event.start, event.extendedProps.end_date)}</div>
+                            </div>
+                            ${event.extendedProps.start_time || event.extendedProps.end_time ? `
+                            <div class="col-sm-6">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-clock me-2 text-info"></i>
+                                    <strong>Time:</strong>
+                                </div>
+                                <div class="ms-4 text-muted">${getTimeDisplay(event.extendedProps.start_time, event.extendedProps.end_time)}</div>
+                            </div>
+                            ` : ''}
+                        </div>
+                        
+                        ${event.extendedProps.description ? `
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-align-left me-2 text-secondary"></i>
+                                <strong>Description:</strong>
+                            </div>
+                            <div class="ms-4 p-2 rounded" style="background-color: #21262d; border: 1px solid #30363d;">
+                                ${event.extendedProps.description}
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        ${event.extendedProps.list_name ? `
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-list me-2 text-success"></i>
+                                <strong>List:</strong>
+                                <span class="ms-2 badge" style="background-color: #238636;">${event.extendedProps.list_name}</span>
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
                 `;
 
                 document.getElementById('eventDetailsContent').innerHTML = content;
