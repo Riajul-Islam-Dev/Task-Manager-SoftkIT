@@ -51,7 +51,7 @@ if (isset($_GET['action'])) {
                     'Low' => '#28a745',
                     default => '#007bff'
                 };
-                
+
                 // Use event type color if available, otherwise use priority color
                 $color = $eventTypeColor !== '#007bff' ? $eventTypeColor : $priorityColor;
 
@@ -60,7 +60,7 @@ if (isset($_GET['action'])) {
                 $endDate = $row['end_date'] ?? null;
 
                 $eventStart = $row['event_date'] . 'T' . $startTime;
-                
+
                 // Handle multi-day events
                 if ($endDate && $endDate !== $row['event_date']) {
                     // Multi-day event: end on the end_date
@@ -187,7 +187,7 @@ function validateEventInput(array $data): array
     if (!empty($cleaned['event_date']) && !empty($cleaned['end_date'])) {
         $startDateObj = DateTime::createFromFormat('Y-m-d', $cleaned['event_date']);
         $endDateObj = DateTime::createFromFormat('Y-m-d', $cleaned['end_date']);
-        
+
         if ($endDateObj < $startDateObj) {
             $errors[] = 'End date cannot be before start date.';
         }
@@ -223,7 +223,7 @@ function validateEventInput(array $data): array
     if (!empty($cleaned['start_time']) && !empty($cleaned['end_time'])) {
         $startDateTime = DateTime::createFromFormat('H:i:s', $cleaned['start_time']);
         $endDateTime = DateTime::createFromFormat('H:i:s', $cleaned['end_time']);
-        
+
         if ($endDateTime <= $startDateTime) {
             $errors[] = 'End time must be after start time.';
         }
@@ -267,7 +267,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 Session::setError(implode(' ', $validationErrors));
             } else {
                 $data = $validation['data'];
-                
+
                 // If task_id is provided, verify it exists
                 if ($data['task_id']) {
                     $taskExists = Database::fetchOne(
@@ -676,20 +676,21 @@ try {
             border-color: #da3633;
             color: #f85149;
         }
-        
+
         /* Enhanced calendar styling */
         .fc-daygrid-day:hover {
             background-color: rgba(88, 166, 255, 0.05);
         }
-        
+
         .fc-day-today {
             background-color: rgba(88, 166, 255, 0.1) !important;
         }
-        
-        .fc-day-sat, .fc-day-sun {
+
+        .fc-day-sat,
+        .fc-day-sun {
             background-color: rgba(255, 255, 255, 0.02);
         }
-        
+
         .fc-toolbar {
             background: linear-gradient(135deg, #21262d, #30363d) !important;
             border-radius: 8px !important;
@@ -697,19 +698,19 @@ try {
             margin-bottom: 20px !important;
             border: 1px solid #30363d !important;
         }
-        
+
         .fc-toolbar-title {
             color: #58a6ff !important;
             font-weight: 600 !important;
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
         }
-        
+
         .fc-scrollgrid {
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
-        
+
         .fc-daygrid-day-number {
             color: #c9d1d9;
             font-weight: 500;
@@ -717,22 +718,22 @@ try {
             border-radius: 4px;
             transition: all 0.2s ease;
         }
-        
+
         .fc-daygrid-day-number:hover {
             background-color: rgba(88, 166, 255, 0.2);
             color: #58a6ff;
         }
-        
+
         /* Event details modal enhancements */
         .event-details-header {
             transition: all 0.3s ease;
         }
-        
-        .event-details-body .row > div {
+
+        .event-details-body .row>div {
             transition: all 0.2s ease;
         }
-        
-        .event-details-body .row > div:hover {
+
+        .event-details-body .row>div:hover {
             transform: translateX(2px);
         }
     </style>
@@ -859,20 +860,20 @@ try {
                             <div class="text-info">Maximum 1000 characters</div>
                         </div>
                         <div class="row">
-                             <div class="col-md-6">
-                                 <div class="mb-3">
-                                     <label for="event_date" class="form-label">Start Date *</label>
-                                     <input type="date" class="form-control" id="event_date" name="event_date" required>
-                                 </div>
-                             </div>
-                             <div class="col-md-6">
-                                 <div class="mb-3">
-                                     <label for="end_date" class="form-label">End Date</label>
-                                     <input type="date" class="form-control" id="end_date" name="end_date">
-                                     <div class="text-info">Leave empty for single-day events</div>
-                                 </div>
-                             </div>
-                         </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="event_date" class="form-label">Start Date *</label>
+                                    <input type="date" class="form-control" id="event_date" name="event_date" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="end_date" class="form-label">End Date</label>
+                                    <input type="date" class="form-control" id="end_date" name="end_date">
+                                    <div class="text-info">Leave empty for single-day events</div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -971,20 +972,20 @@ try {
                             <div class="text-info">Maximum 1000 characters</div>
                         </div>
                         <div class="row">
-                             <div class="col-md-6">
-                                 <div class="mb-3">
-                                     <label for="edit_event_date" class="form-label">Start Date *</label>
-                                     <input type="date" class="form-control" id="edit_event_date" name="event_date" required>
-                                 </div>
-                             </div>
-                             <div class="col-md-6">
-                                 <div class="mb-3">
-                                     <label for="edit_end_date" class="form-label">End Date</label>
-                                     <input type="date" class="form-control" id="edit_end_date" name="end_date">
-                                     <div class="text-info">Leave empty for single-day events</div>
-                                 </div>
-                             </div>
-                         </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit_event_date" class="form-label">Start Date *</label>
+                                    <input type="date" class="form-control" id="edit_event_date" name="event_date" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit_end_date" class="form-label">End Date</label>
+                                    <input type="date" class="form-control" id="edit_end_date" name="end_date">
+                                    <div class="text-info">Leave empty for single-day events</div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -1072,12 +1073,12 @@ try {
                     if (info.event.extendedProps.priority) {
                         info.el.setAttribute('data-priority', info.event.extendedProps.priority);
                     }
-                    
+
                     // Add time indicator class
                     if (info.event.extendedProps.start_time && info.event.extendedProps.start_time !== '00:00:00') {
                         info.el.classList.add('has-time');
                     }
-                    
+
                     // Add tooltip with event details
                     const tooltipContent = [
                         info.event.title,
@@ -1085,7 +1086,7 @@ try {
                         info.event.extendedProps.priority ? `Priority: ${info.event.extendedProps.priority}` : '',
                         info.event.extendedProps.list_name ? `List: ${info.event.extendedProps.list_name}` : ''
                     ].filter(Boolean).join('\n');
-                    
+
                     info.el.setAttribute('title', tooltipContent);
                 },
                 eventClick: function(info) {
@@ -1108,13 +1109,13 @@ try {
                     'REMINDER': 'fas fa-bell',
                     'EVENT': 'fas fa-calendar-day'
                 };
-                
+
                 const priorityIcon = {
                     'High': 'fas fa-exclamation-circle text-danger',
                     'Medium': 'fas fa-exclamation-triangle text-warning',
                     'Low': 'fas fa-info-circle text-success'
                 };
-                
+
                 var content = `
                     <div class="event-details-header mb-3 p-3 rounded" style="background: linear-gradient(135deg, ${event.backgroundColor}20, ${event.backgroundColor}10); border-left: 4px solid ${event.backgroundColor};">
                         <h5 class="mb-2 d-flex align-items-center">
@@ -1122,7 +1123,7 @@ try {
                             <strong>${event.title}</strong>
                             ${event.extendedProps.priority ? `<span class="ms-auto"><i class="${priorityIcon[event.extendedProps.priority]} me-1"></i><span class="badge bg-${getPriorityColor(event.extendedProps.priority)}">${event.extendedProps.priority}</span></span>` : ''}
                         </h5>
-                        ${event.extendedProps.event_type ? `<small class="text-muted"><i class="fas fa-tag me-1"></i>${event.extendedProps.event_type}</small>` : ''}
+                        ${event.extendedProps.event_type ? `<small><i class="fas fa-tag me-1"></i>${event.extendedProps.event_type}</small>` : ''}
                     </div>
                     
                     <div class="event-details-body">
@@ -1132,7 +1133,7 @@ try {
                                     <i class="fas fa-calendar-alt me-2 text-primary"></i>
                                     <strong>Date:</strong>
                                 </div>
-                                <div class="ms-4 text-muted">${getDateDisplay(event.start, event.extendedProps.end_date)}</div>
+                                <div class="ms-4">${getDateDisplay(event.start, event.extendedProps.end_date)}</div>
                             </div>
                             ${event.extendedProps.start_time || event.extendedProps.end_time ? `
                             <div class="col-sm-6">
@@ -1140,7 +1141,7 @@ try {
                                     <i class="fas fa-clock me-2 text-info"></i>
                                     <strong>Time:</strong>
                                 </div>
-                                <div class="ms-4 text-muted">${getTimeDisplay(event.extendedProps.start_time, event.extendedProps.end_time)}</div>
+                                <div class="ms-4">${getTimeDisplay(event.extendedProps.start_time, event.extendedProps.end_time)}</div>
                             </div>
                             ` : ''}
                         </div>
@@ -1174,10 +1175,10 @@ try {
                 // Show edit and delete buttons and set up functionality
                 var editBtn = document.getElementById('editEventBtn');
                 var deleteBtn = document.getElementById('deleteEventBtn');
-                
+
                 editBtn.style.display = 'inline-block';
                 deleteBtn.style.display = 'inline-block';
-                
+
                 editBtn.onclick = function() {
                     populateEditModal(event);
                     var editModal = new bootstrap.Modal(document.getElementById('editEventModal'));
@@ -1185,7 +1186,7 @@ try {
                     detailsModal.hide();
                     editModal.show();
                 };
-                
+
                 deleteBtn.onclick = function() {
                     Swal.fire({
                         title: 'Are you sure?',
@@ -1220,39 +1221,39 @@ try {
             }
 
             function getTimeDisplay(startTime, endTime) {
-                 let timeDisplay = '';
-                 
-                 if (startTime) {
-                     const start = new Date('1970-01-01T' + startTime).toLocaleTimeString('en-US', {
-                         hour: '2-digit',
-                         minute: '2-digit',
-                         hour12: true
-                     });
-                     timeDisplay += start;
-                 }
-                 
-                 if (endTime) {
-                     const end = new Date('1970-01-01T' + endTime).toLocaleTimeString('en-US', {
-                         hour: '2-digit',
-                         minute: '2-digit',
-                         hour12: true
-                     });
-                     timeDisplay += timeDisplay ? ` - ${end}` : end;
-                 }
-                 
-                 return timeDisplay;
-             }
+                let timeDisplay = '';
 
-             function getDateDisplay(startDate, endDate) {
-                 const startDateStr = startDate.toLocaleDateString();
-                 
-                 if (endDate && endDate !== startDate.toISOString().split('T')[0]) {
-                     const endDateObj = new Date(endDate);
-                     return `${startDateStr} - ${endDateObj.toLocaleDateString()}`;
-                 }
-                 
-                 return startDateStr;
-             }
+                if (startTime) {
+                    const start = new Date('1970-01-01T' + startTime).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                    });
+                    timeDisplay += start;
+                }
+
+                if (endTime) {
+                    const end = new Date('1970-01-01T' + endTime).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                    });
+                    timeDisplay += timeDisplay ? ` - ${end}` : end;
+                }
+
+                return timeDisplay;
+            }
+
+            function getDateDisplay(startDate, endDate) {
+                const startDateStr = startDate.toLocaleDateString();
+
+                if (endDate && endDate !== startDate.toISOString().split('T')[0]) {
+                    const endDateObj = new Date(endDate);
+                    return `${startDateStr} - ${endDateObj.toLocaleDateString()}`;
+                }
+
+                return startDateStr;
+            }
 
             function populateEditModal(event) {
                 // Get event details from server to populate edit form
@@ -1268,13 +1269,13 @@ try {
                             });
                             return;
                         }
-                        
+
                         // Populate edit form fields
                         document.getElementById('edit_event_id').value = data.event_id;
                         document.getElementById('edit_event_title').value = data.event_title || '';
                         document.getElementById('edit_event_description').value = data.event_description || '';
-                         document.getElementById('edit_event_date').value = data.event_date || '';
-                         document.getElementById('edit_end_date').value = data.end_date || '';
+                        document.getElementById('edit_event_date').value = data.event_date || '';
+                        document.getElementById('edit_end_date').value = data.end_date || '';
                         document.getElementById('edit_start_time').value = data.start_time ? data.start_time.substring(0, 5) : '';
                         document.getElementById('edit_end_time').value = data.end_time ? data.end_time.substring(0, 5) : '';
                         document.getElementById('edit_event_type').value = data.event_type || 'event';
